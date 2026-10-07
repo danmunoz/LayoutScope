@@ -4,9 +4,9 @@ import UIKit
 public extension View {
     /// Attach once to the root view inside each WindowGroup.
     /// Draws window diagnostics without affecting content layout; a no-op in release builds.
-    func windowLayoutDebugOverlay(includeInactiveRegions: Bool = true) -> some View {
+    func layoutScopeOverlay(includeInactiveRegions: Bool = true) -> some View {
         #if DEBUG
-            modifier(WindowLayoutDebugModifier(includeInactiveRegions: includeInactiveRegions))
+            modifier(LayoutScopeOverlayModifier(includeInactiveRegions: includeInactiveRegions))
         #else
             self
         #endif
@@ -14,47 +14,47 @@ public extension View {
 }
 
 #if DEBUG
-    private struct WindowLayoutDebugModifier: ViewModifier {
+    private struct LayoutScopeOverlayModifier: ViewModifier {
         let includeInactiveRegions: Bool
-        @State private var hinge: LayoutDebugHingeState = .initial
+        @State private var hinge: LayoutScopeHingeState = .initial
         @State private var cornerRadii = RectangleCornerRadii()
 
         func body(content: Content) -> some View {
             content.frame(maxWidth: .infinity, maxHeight: .infinity).overlay {
-                WindowLayoutDebugBridge(includeInactiveRegions: includeInactiveRegions, hinge: hinge, cornerRadii: cornerRadii)
+                LayoutScopeBridge(includeInactiveRegions: includeInactiveRegions, hinge: hinge, cornerRadii: cornerRadii)
                     .ignoresSafeArea()
                     .onGeometryChange(for: RectangleCornerRadii.self) { proxy in
                         proxy.concentricCornerRadii ?? RectangleCornerRadii()
                     } action: { cornerRadii = $0 }
             }
-            .modifier(LayoutDebugHingeObserver { hinge = $0 })
+            .modifier(LayoutScopeHingeObserver { hinge = $0 })
         }
     }
 
-    private struct WindowLayoutDebugBridge: UIViewRepresentable {
+    private struct LayoutScopeBridge: UIViewRepresentable {
         let includeInactiveRegions: Bool
-        let hinge: LayoutDebugHingeState
+        let hinge: LayoutScopeHingeState
         let cornerRadii: RectangleCornerRadii
 
-        func makeUIView(context _: Context) -> WindowLayoutDebugProbe {
-            WindowLayoutDebugProbe()
+        func makeUIView(context _: Context) -> LayoutScopeAttachmentView {
+            LayoutScopeAttachmentView()
         }
 
-        func updateUIView(_ probe: WindowLayoutDebugProbe, context _: Context) {
+        func updateUIView(_ probe: LayoutScopeAttachmentView, context _: Context) {
             probe.overlay.includeInactiveRegions = includeInactiveRegions
             probe.overlay.hinge = hinge
             probe.overlay.model.cornerRadii = cornerRadii
             probe.updateAttachment()
         }
 
-        static func dismantleUIView(_ probe: WindowLayoutDebugProbe, coordinator _: ()) {
+        static func dismantleUIView(_ probe: LayoutScopeAttachmentView, coordinator _: ()) {
             probe.detach()
         }
     }
 
     /// Uses its own window, never process-wide scene or screen discovery.
-    final class WindowLayoutDebugProbe: UIView {
-        let overlay = WindowLayoutDebugView()
+    final class LayoutScopeAttachmentView: UIView {
+        let overlay = LayoutScopeHostingView()
         private weak var attachedWindow: UIWindow?
 
         override init(frame: CGRect) {
@@ -103,6 +103,6 @@ public extension View {
             Color.gray.opacity(0.2)
                 .navigationTitle(Text(verbatim: "Window diagnostics"))
         }
-        .windowLayoutDebugOverlay()
+        .layoutScopeOverlay()
     }
 #endif

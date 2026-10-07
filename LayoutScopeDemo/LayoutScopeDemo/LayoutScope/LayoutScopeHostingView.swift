@@ -4,28 +4,28 @@ import UIKit
 
 #if DEBUG
     @Observable
-    final class WindowLayoutDebugModel {
-        var snapshot: LayoutDebugSnapshot?
-        var visibility = LayoutDebugVisibility()
+    final class LayoutScopeModel {
+        var snapshot: LayoutScopeSnapshot?
+        var visibility = LayoutScopeVisibility()
         var cornerRadii = RectangleCornerRadii()
         @ObservationIgnored var controlsFrame = CGRect.zero
     }
 
-    struct WindowLayoutDebugContent: View {
-        @Bindable var model: WindowLayoutDebugModel
+    struct LayoutScopeContent: View {
+        @Bindable var model: LayoutScopeModel
 
         var body: some View {
             if let snapshot = model.snapshot {
                 ZStack(alignment: .bottomLeading) {
-                    LayoutDebugOverlay(snapshot: snapshot, visibility: model.visibility)
-                    LayoutDebugControls(visibility: $model.visibility)
+                    LayoutScopeOverlay(snapshot: snapshot, visibility: model.visibility)
+                    LayoutScopeControls(visibility: $model.visibility)
                         .onGeometryChange(for: CGRect.self) { proxy in
-                            proxy.frame(in: .named("windowDiagnostics"))
+                            proxy.frame(in: .named("layoutScope"))
                         } action: { model.controlsFrame = $0 }
                         .padding(snapshot.readoutInsets)
                 }
                 .frame(width: snapshot.size.width, height: snapshot.size.height)
-                .coordinateSpace(name: "windowDiagnostics")
+                .coordinateSpace(name: "layoutScope")
                 .environment(\.layoutDirection, .leftToRight)
                 // UIKit hosting boundaries do not forward SwiftUI container shapes.
                 .containerShape(UnevenRoundedRectangle(cornerRadii: model.cornerRadii))
@@ -34,18 +34,18 @@ import UIKit
     }
 
     /// Hosts one renderer for the lifetime of a root attachment.
-    final class WindowLayoutDebugView: UIView {
+    final class LayoutScopeHostingView: UIView {
         var includeInactiveRegions = true {
             didSet {
                 if oldValue != includeInactiveRegions { model.visibility.includeInactive = includeInactiveRegions }
             }
         }
 
-        var hinge: LayoutDebugHingeState = .initial
-        let model = WindowLayoutDebugModel()
-        private(set) var hostingController: UIHostingController<WindowLayoutDebugContent>?
+        var hinge: LayoutScopeHingeState = .initial
+        let model = LayoutScopeModel()
+        private(set) var hostingController: UIHostingController<LayoutScopeContent>?
         private var displayLink: CADisplayLink?
-        var snapshot: LayoutDebugSnapshot? {
+        var snapshot: LayoutScopeSnapshot? {
             model.snapshot
         }
 
@@ -60,7 +60,7 @@ import UIKit
             isUserInteractionEnabled = true
             clipsToBounds = true
             autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            registerForTraitChanges([UITraitHorizontalSizeClass.self, UITraitVerticalSizeClass.self]) { (view: WindowLayoutDebugView, _: UITraitCollection) in
+            registerForTraitChanges([UITraitHorizontalSizeClass.self, UITraitVerticalSizeClass.self]) { (view: LayoutScopeHostingView, _: UITraitCollection) in
                 view.refresh()
             }
         }
@@ -77,7 +77,7 @@ import UIKit
             updateHostingParent()
             guard window != nil else { return }
             // Reserved-region activity can change without a layout callback.
-            let link = CADisplayLink(target: DisplayLinkTarget(overlay: self), selector: #selector(DisplayLinkTarget.tick))
+            let link = CADisplayLink(target: LayoutScopeDisplayLinkTarget(overlay: self), selector: #selector(LayoutScopeDisplayLinkTarget.tick))
             link.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 10, preferred: 10)
             link.add(to: .main, forMode: .common)
             displayLink = link
@@ -101,7 +101,7 @@ import UIKit
             if frame != windowFrame { frame = windowFrame }
             if superview?.subviews.last !== self { superview?.bringSubviewToFront(self) }
             let direction: LayoutDirection = window.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .rightToLeft : .leftToRight
-            display(LayoutDebugSnapshot(
+            display(LayoutScopeSnapshot(
                 size: bounds.size,
                 safeAreaInsets: directional(window.safeAreaInsets, direction: direction),
                 contentMargins: nil,
@@ -115,11 +115,11 @@ import UIKit
             ))
         }
 
-        func display(_ snapshot: LayoutDebugSnapshot) {
+        func display(_ snapshot: LayoutScopeSnapshot) {
             guard snapshot != model.snapshot else { return }
             model.snapshot = snapshot
             if hostingController == nil {
-                let controller = UIHostingController(rootView: WindowLayoutDebugContent(model: model))
+                let controller = UIHostingController(rootView: LayoutScopeContent(model: model))
                 // Explicit window measurements already account for safe areas.
                 controller.safeAreaRegions = []
                 controller.view.isOpaque = false
@@ -147,12 +147,12 @@ import UIKit
             }
         }
 
-        private func reservedRegions(in window: UIWindow, direction: LayoutDirection) -> [LayoutDebugRegion]? {
+        private func reservedRegions(in window: UIWindow, direction: LayoutDirection) -> [LayoutScopeRegion]? {
             guard #available(iOS 27.1, *) else { return nil }
             let options: UIView.ReservedRegion.QueryOptions = model.visibility.includeInactive ? .includeInactive : []
             return [UIView.ReservedRegion.Kind.division, .occlusion].flatMap { kind in
                 window.reservedRegions(kind: kind, options: options).map {
-                    LayoutDebugRegion(frame: $0.frame, margins: directional($0.margins, direction: direction), isActive: $0.isActive, isDivision: kind == .division, id: AnyHashable($0.id))
+                    LayoutScopeRegion(frame: $0.frame, margins: directional($0.margins, direction: direction), isActive: $0.isActive, isDivision: kind == .division, id: AnyHashable($0.id))
                 }
             }
         }
@@ -176,10 +176,10 @@ import UIKit
         }
     }
 
-    private final class DisplayLinkTarget: NSObject {
-        private weak var overlay: WindowLayoutDebugView?
+    private final class LayoutScopeDisplayLinkTarget: NSObject {
+        private weak var overlay: LayoutScopeHostingView?
 
-        init(overlay: WindowLayoutDebugView) {
+        init(overlay: LayoutScopeHostingView) {
             self.overlay = overlay
         }
 

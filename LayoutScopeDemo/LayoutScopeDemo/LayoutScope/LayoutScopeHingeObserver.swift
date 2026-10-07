@@ -1,7 +1,7 @@
 import SwiftUI
 
 #if DEBUG
-    enum LayoutDebugHingeState: Equatable {
+    enum LayoutScopeHingeState: Equatable {
         case unsupported
         case awaitingUpdate
         case unavailable
@@ -47,13 +47,13 @@ import SwiftUI
         }
     }
 
-    struct LayoutDebugHingeObserver: ViewModifier {
-        let update: (LayoutDebugHingeState) -> Void
+    struct LayoutScopeHingeObserver: ViewModifier {
+        let update: (LayoutScopeHingeState) -> Void
 
         func body(content: Content) -> some View {
             if #available(iOS 27.1, *) {
                 content.onHingeChange { _, context in
-                    update(LayoutDebugHingeState(hinge: context.hinge))
+                    update(LayoutScopeHingeState(hinge: context.hinge))
                 }
             } else {
                 content

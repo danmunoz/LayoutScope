@@ -6,9 +6,9 @@ import UIKit
 #if DEBUG
     @MainActor
     @Suite(.serialized)
-    struct LayoutDebugOverlayTests {
+    struct LayoutScopeOverlayTests {
         @Test func consumedInsetsProduceNoGuides() {
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
             #expect(snapshot.guides.isEmpty)
             #expect(snapshot.readout().contains { $0.text == "safe area insets · none" })
         }
@@ -16,8 +16,8 @@ import UIKit
         @Test func readoutOmitsCountsAndNumbersEachKind() {
             let frame = CGRect(x: 100, y: 20, width: 40, height: 60)
             let division = region(frame)
-            let occlusion = LayoutDebugRegion(frame: frame, margins: EdgeInsets(), isActive: false, isDivision: false)
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [occlusion, division, occlusion])
+            let occlusion = LayoutScopeRegion(frame: frame, margins: EdgeInsets(), isActive: false, isDivision: false)
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [occlusion, division, occlusion])
             let labels = snapshot.readout().map(\.text)
             #expect(labels.first == "top / lead / bottom / trail")
             #expect(!labels.contains { $0.contains("count ·") })
@@ -36,28 +36,28 @@ import UIKit
                 (.fullyOpen, .degrees(180), ".fullyOpen", 180),
             ]
             for (status, angle, label, degrees) in cases {
-                #expect(LayoutDebugHingeState(status: status, angle: angle) == .reading(status: label, angleDegrees: degrees))
+                #expect(LayoutScopeHingeState(status: status, angle: angle) == .reading(status: label, angleDegrees: degrees))
             }
         }
 
         @available(iOS 27.1, *)
         @Test func nilHingeClearsStatusAndAngle() {
-            let state = LayoutDebugHingeState(hinge: nil)
+            let state = LayoutScopeHingeState(hinge: nil)
             #expect(state == .unavailable)
             #expect(state.readout == "hinge · unavailable")
         }
 
         @Test func hingeReadoutDistinguishesWaitingUnsupportedAndLiveValues() {
-            #expect(LayoutDebugHingeState.awaitingUpdate.readout == "hinge · awaiting update")
-            #expect(LayoutDebugHingeState.unsupported.readout == "hinge · requires iOS 27.1")
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [], hinge: .reading(status: "partially open", angleDegrees: 91.25))
+            #expect(LayoutScopeHingeState.awaitingUpdate.readout == "hinge · awaiting update")
+            #expect(LayoutScopeHingeState.unsupported.readout == "hinge · requires iOS 27.1")
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [], hinge: .reading(status: "partially open", angleDegrees: 91.25))
             let labels = snapshot.readout().map(\.text)
             #expect(labels.filter { $0.hasPrefix("hinge") } == ["hinge · 91.2° | status: partially open"])
             #expect(!labels.contains { $0.contains("SDK id") })
         }
 
         @Test func onlyPresentEdgesProduceGuides() throws {
-            let guides = LayoutDebugGeometry.insetGuides(EdgeInsets(top: 20, leading: 0, bottom: 0, trailing: 0), size: CGSize(width: 300, height: 400), layoutDirection: .leftToRight, color: .cyan)
+            let guides = LayoutScopeGeometry.insetGuides(EdgeInsets(top: 20, leading: 0, bottom: 0, trailing: 0), size: CGSize(width: 300, height: 400), layoutDirection: .leftToRight, color: .cyan)
             let guide = try #require(guides.first)
             #expect(guides.count == 1)
             #expect(guide.fill == CGRect(x: 0, y: 0, width: 300, height: 20))
@@ -65,7 +65,7 @@ import UIKit
         }
 
         @Test func leadingMarginMovesToRightInRTL() throws {
-            let guides = LayoutDebugGeometry.insetGuides(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 0), size: CGSize(width: 300, height: 400), layoutDirection: .rightToLeft, color: .green)
+            let guides = LayoutScopeGeometry.insetGuides(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 0), size: CGSize(width: 300, height: 400), layoutDirection: .rightToLeft, color: .green)
             let guide = try #require(guides.first)
             #expect(guides.count == 1)
             #expect(guide.fill == CGRect(x: 282, y: 0, width: 18, height: 400))
@@ -73,20 +73,20 @@ import UIKit
 
         @Test func negativeAndOversizedInsetsStayWithinViewport() {
             let size = CGSize(width: 300, height: 400)
-            let guides = LayoutDebugGeometry.insetGuides(EdgeInsets(top: 500, leading: -10, bottom: -20, trailing: 600), size: size, layoutDirection: .leftToRight, color: .cyan)
+            let guides = LayoutScopeGeometry.insetGuides(EdgeInsets(top: 500, leading: -10, bottom: -20, trailing: 600), size: size, layoutDirection: .leftToRight, color: .cyan)
             #expect(guides.count == 2)
             #expect(guides.allSatisfy { CGRect(origin: .zero, size: size).contains($0.fill) })
         }
 
         @Test func zeroSizedViewportHasNoGuidesOrVisibleRegions() {
-            let snapshot = LayoutDebugSnapshot(size: .zero, safeAreaInsets: EdgeInsets(top: 44, leading: 0, bottom: 34, trailing: 0), contentMargins: nil, regions: [region(CGRect(x: 0, y: 0, width: 20, height: 400))])
+            let snapshot = LayoutScopeSnapshot(size: .zero, safeAreaInsets: EdgeInsets(top: 44, leading: 0, bottom: 34, trailing: 0), contentMargins: nil, regions: [region(CGRect(x: 0, y: 0, width: 20, height: 400))])
             #expect(snapshot.visibleRegions.isEmpty)
             #expect(snapshot.guides.isEmpty)
         }
 
         @Test func inactiveRegionsKeepTheirDashedFaintStyle() throws {
-            let inactive = LayoutDebugRegion(frame: CGRect(x: 20, y: 20, width: 40, height: 60), margins: EdgeInsets(), isActive: false, isDivision: false)
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [inactive])
+            let inactive = LayoutScopeRegion(frame: CGRect(x: 20, y: 20, width: 40, height: 60), margins: EdgeInsets(), isActive: false, isDivision: false)
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [inactive])
             let guide = try #require(snapshot.guides.first)
             #expect(guide.opacity < 1)
             #expect(!guide.dash.isEmpty)
@@ -94,7 +94,7 @@ import UIKit
         }
 
         @Test func windowReadoutOmitsContentMarginsAndNonintersectingRegions() {
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [region(CGRect(x: 400, y: 0, width: 20, height: 400))], isWindow: true)
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [region(CGRect(x: 400, y: 0, width: 20, height: 400))], isWindow: true)
             let labels = snapshot.readout().map(\.text)
             #expect(!labels.contains { $0.hasPrefix("content margins") })
             #expect(!labels.contains { $0.contains("count ·") })
@@ -102,28 +102,28 @@ import UIKit
         }
 
         @Test func onlyNonzeroLocalContentMarginsProduceReadoutRows() {
-            var snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
+            var snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
             #expect(!snapshot.readout().contains { $0.text.hasPrefix("content margins") })
-            snapshot = LayoutDebugSnapshot(size: snapshot.size, safeAreaInsets: snapshot.safeAreaInsets, contentMargins: EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20), regions: [])
+            snapshot = LayoutScopeSnapshot(size: snapshot.size, safeAreaInsets: snapshot.safeAreaInsets, contentMargins: EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20), regions: [])
             #expect(snapshot.readout().contains { $0.text == "content margins · 0.0 / 20.0 / 0.0 / 20.0" })
             snapshot.isWindow = true
             #expect(!snapshot.readout().contains { $0.text.hasPrefix("content margins") })
         }
 
         @Test func regionReadoutIncludesOnlyNonzeroMargins() {
-            let withMargins = LayoutDebugRegion(frame: CGRect(x: 100, y: 0, width: 40, height: 400), margins: EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 10), isActive: true, isDivision: true)
+            let withMargins = LayoutScopeRegion(frame: CGRect(x: 100, y: 0, width: 40, height: 400), margins: EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 10), isActive: true, isDivision: true)
             let withoutMargins = region(CGRect(x: 200, y: 0, width: 20, height: 400))
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [withMargins, withoutMargins])
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [withMargins, withoutMargins])
             #expect(snapshot.readout().filter { $0.text.contains("included margins") }.map(\.text) == ["  included margins · 0.0 / 10.0 / 0.0 / 10.0"])
         }
 
         @Test func windowReadoutUsesPhysicalSafeInsetsInRTL() {
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 20, leading: 84, bottom: 34, trailing: 12), contentMargins: nil, regions: [], isWindow: true, layoutDirection: .rightToLeft)
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 20, leading: 84, bottom: 34, trailing: 12), contentMargins: nil, regions: [], isWindow: true, layoutDirection: .rightToLeft)
             #expect(snapshot.readoutInsets == EdgeInsets(top: 28, leading: 20, bottom: 42, trailing: 92))
         }
 
         @Test func localReadoutDoesNotReapplySafeInsets() {
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 44, leading: 84, bottom: 34, trailing: 12), contentMargins: nil, regions: [])
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 44, leading: 84, bottom: 34, trailing: 12), contentMargins: nil, regions: [])
             #expect(snapshot.readoutInsets == EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
         }
 
@@ -132,16 +132,16 @@ import UIKit
             first.id = AnyHashable("first")
             var second = region(CGRect(x: 200, y: 0, width: 20, height: 400))
             second.id = AnyHashable("second")
-            let before = LayoutDebugSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [first, second], hinge: .unavailable)
-            let after = LayoutDebugSnapshot(size: before.size, safeAreaInsets: before.safeAreaInsets, contentMargins: nil, regions: [second, first], hinge: .reading(status: "fully open", angleDegrees: 180))
+            let before = LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [first, second], hinge: .unavailable)
+            let after = LayoutScopeSnapshot(size: before.size, safeAreaInsets: before.safeAreaInsets, contentMargins: nil, regions: [second, first], hinge: .reading(status: "fully open", angleDegrees: 180))
             #expect(Set(before.readout().map(\.id)).isSubset(of: Set(after.readout().map(\.id))))
             #expect(Set(after.readout().map(\.id)).count == after.readout().count)
         }
 
         @MainActor @Test func swiftUIHostingReusesContentAndKeepsFullWindowBounds() throws {
             let size = CGSize(width: 600, height: 400)
-            let overlay = WindowLayoutDebugView(frame: CGRect(origin: .zero, size: size))
-            var snapshot = LayoutDebugSnapshot(size: size, safeAreaInsets: EdgeInsets(top: 44, leading: 0, bottom: 34, trailing: 84), contentMargins: nil, regions: [], isWindow: true)
+            let overlay = LayoutScopeHostingView(frame: CGRect(origin: .zero, size: size))
+            var snapshot = LayoutScopeSnapshot(size: size, safeAreaInsets: EdgeInsets(top: 44, leading: 0, bottom: 34, trailing: 84), contentMargins: nil, regions: [], isWindow: true)
             overlay.display(snapshot)
             let content = try #require(overlay.subviews.first)
             #expect(overlay.hostingController?.safeAreaRegions == [])
@@ -160,8 +160,8 @@ import UIKit
         }
 
         @MainActor @Test func swiftUIRendererProducesWindowSizedPreview() throws {
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84), contentMargins: nil, regions: [], isWindow: true, hinge: .reading(status: "partially open", angleDegrees: 90))
-            let renderer = ImageRenderer(content: LayoutDebugOverlay(snapshot: snapshot).frame(width: snapshot.size.width, height: snapshot.size.height))
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84), contentMargins: nil, regions: [], isWindow: true, hinge: .reading(status: "partially open", angleDegrees: 90))
+            let renderer = ImageRenderer(content: LayoutScopeOverlay(snapshot: snapshot).frame(width: snapshot.size.width, height: snapshot.size.height))
             renderer.scale = 1
             let image = try #require(renderer.uiImage)
             #expect(image.size == snapshot.size)
@@ -169,16 +169,16 @@ import UIKit
             #expect(try alpha(in: bitmap, at: CGPoint(x: 300, y: 200)) == 0)
             let bandAlpha = try alpha(in: bitmap, at: CGPoint(x: 580, y: 200))
             #expect(bandAlpha > 0 && bandAlpha < 255)
-            let previewURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("window-layout-refactor-preview.png")
+            let previewURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("layout-scope-preview.png")
             try #require(image.pngData()).write(to: previewURL)
-            print("LayoutDebugPreview: \(previewURL.path)")
+            print("LayoutScopePreview: \(previewURL.path)")
         }
 
         @MainActor @Test func readoutBackgroundFollowsLargeContainerCorner() throws {
             let size = CGSize(width: 600, height: 400)
-            let snapshot = LayoutDebugSnapshot(size: size, safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [], isWindow: true)
+            let snapshot = LayoutScopeSnapshot(size: size, safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [], isWindow: true)
             // Leave the image unclipped: the panel itself must avoid the screen curve.
-            let renderer = ImageRenderer(content: LayoutDebugOverlay(snapshot: snapshot)
+            let renderer = ImageRenderer(content: LayoutScopeOverlay(snapshot: snapshot)
                 .frame(width: size.width, height: size.height)
                 .containerShape(.rect(cornerRadius: 80)))
             renderer.scale = 1
@@ -193,7 +193,7 @@ import UIKit
             window.rootViewController = UIViewController()
             window.rootViewController?.view.backgroundColor = .white
             window.isHidden = false
-            let overlay = WindowLayoutDebugView(frame: window.bounds)
+            let overlay = LayoutScopeHostingView(frame: window.bounds)
             let root = try #require(window.rootViewController)
             root.view.addSubview(overlay)
             defer {
@@ -233,9 +233,9 @@ import UIKit
             #expect(try isCyan(in: rendered, at: CGPoint(x: size.width / 4, y: size.height - 10)))
             let occlusion = try #require(overlay.snapshot?.visibleRegions.first { !$0.isDivision && $0.isActive && $0.frame.maxX >= size.width - 1 })
             #expect(try isPink(in: rendered, at: CGPoint(x: size.width - 10, y: occlusion.frame.midY)))
-            let previewURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("window-layout-attached-preview.png")
+            let previewURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("layout-scope-attached-preview.png")
             try #require(UIImage(cgImage: rendered).pngData()).write(to: previewURL)
-            print("LayoutAttachedPreview: \(previewURL.path)")
+            print("LayoutScopeAttachedPreview: \(previewURL.path)")
             let controller = try #require(overlay.hostingController)
             overlay.removeFromSuperview()
             #expect(controller.parent == nil)
@@ -245,16 +245,16 @@ import UIKit
             let outside = region(CGRect(x: 400, y: 0, width: 20, height: 400))
             let partial = region(CGRect(x: 290, y: 20, width: 40, height: 50))
             let line = region(CGRect(x: 150, y: 0, width: 0, height: 400))
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [outside, partial, line])
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [outside, partial, line])
             #expect(snapshot.visibleRegions == [partial, line])
             #expect(snapshot.guides.count == 2)
         }
 
         @Test func reservedFrameAlreadyIncludesMargins() {
-            let region = LayoutDebugRegion(frame: CGRect(x: 100, y: 20, width: 40, height: 60), margins: EdgeInsets(top: 3, leading: 5, bottom: 7, trailing: 9), isActive: true, isDivision: true)
+            let region = LayoutScopeRegion(frame: CGRect(x: 100, y: 20, width: 40, height: 60), margins: EdgeInsets(top: 3, leading: 5, bottom: 7, trailing: 9), isActive: true, isDivision: true)
             #expect(region.occupiedFrame(layoutDirection: .leftToRight) == CGRect(x: 105, y: 23, width: 26, height: 50))
             #expect(region.occupiedFrame(layoutDirection: .rightToLeft) == CGRect(x: 109, y: 23, width: 26, height: 50))
-            let snapshot = LayoutDebugSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [region])
+            let snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [region])
             #expect(snapshot.guides.last?.outline.boundingRect == region.frame)
         }
 
@@ -267,7 +267,7 @@ import UIKit
             }
             let firstRoot = try #require(first.rootViewController)
             let secondRoot = try #require(second.rootViewController)
-            let probe = WindowLayoutDebugProbe()
+            let probe = LayoutScopeAttachmentView()
             firstRoot.view.addSubview(probe)
             let controller = try #require(probe.overlay.hostingController)
             #expect(probe.overlay.superview === probe)
@@ -289,8 +289,8 @@ import UIKit
             #expect(controller.parent == nil)
         }
 
-        private func region(_ frame: CGRect) -> LayoutDebugRegion {
-            LayoutDebugRegion(frame: frame, margins: EdgeInsets(), isActive: true, isDivision: true)
+        private func region(_ frame: CGRect) -> LayoutScopeRegion {
+            LayoutScopeRegion(frame: frame, margins: EdgeInsets(), isActive: true, isDivision: true)
         }
 
         private func alpha(in image: CGImage, at point: CGPoint) throws -> UInt8 {

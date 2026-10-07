@@ -1,20 +1,20 @@
 import SwiftUI
 
 #if DEBUG
-    struct LayoutDebugVisibility: Equatable {
+    struct LayoutScopeVisibility: Equatable {
         var safeArea = true
         var includeInactive = true
         var occlusions = true
         var divisions = true
         var readout = true
 
-        func shows(_ region: LayoutDebugRegion) -> Bool {
+        func shows(_ region: LayoutScopeRegion) -> Bool {
             (region.isActive || includeInactive) && (region.isDivision ? divisions : occlusions)
         }
     }
 
-    struct LayoutDebugControls: View {
-        @Binding var visibility: LayoutDebugVisibility
+    struct LayoutScopeControls: View {
+        @Binding var visibility: LayoutScopeVisibility
 
         var body: some View {
             VStack(alignment: .leading, spacing: 6) {
@@ -33,12 +33,12 @@ import SwiftUI
     }
 
     #Preview("All layers") {
-        @Previewable @State var visibility = LayoutDebugVisibility()
-        LayoutDebugControls(visibility: $visibility)
+        @Previewable @State var visibility = LayoutScopeVisibility()
+        LayoutScopeControls(visibility: $visibility)
     }
 
     #Preview("Readout and inactive regions hidden") {
-        @Previewable @State var visibility = LayoutDebugVisibility(includeInactive: false, readout: false)
-        LayoutDebugControls(visibility: $visibility)
+        @Previewable @State var visibility = LayoutScopeVisibility(includeInactive: false, readout: false)
+        LayoutScopeControls(visibility: $visibility)
     }
 #endif

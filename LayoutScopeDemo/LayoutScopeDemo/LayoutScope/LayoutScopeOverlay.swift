@@ -1,17 +1,17 @@
 import SwiftUI
 
 #if DEBUG
-    struct LayoutDebugOverlay: View {
-        let snapshot: LayoutDebugSnapshot
-        var visibility = LayoutDebugVisibility()
+    struct LayoutScopeOverlay: View {
+        let snapshot: LayoutScopeSnapshot
+        var visibility = LayoutScopeVisibility()
 
         var body: some View {
             GeometryReader { proxy in
                 let divisions = divisionRegions(in: proxy)
                 ZStack(alignment: .topLeading) {
-                    LayoutDebugGuides(guides: snapshot.guides(visibility: visibility))
+                    LayoutScopeGuides(guides: snapshot.guides(visibility: visibility))
                     if visibility.readout {
-                        LayoutDebugReadout(rows: snapshot.readout(divisionRegions: divisions, visibility: visibility), spacing: snapshot.isWindow ? 0 : 3)
+                        LayoutScopeReadout(rows: snapshot.readout(divisionRegions: divisions, visibility: visibility), spacing: snapshot.isWindow ? 0 : 3)
                             .padding(snapshot.readoutInsets)
                     }
                 }
@@ -23,11 +23,11 @@ import SwiftUI
             .accessibilityHidden(true)
         }
 
-        private func divisionRegions(in proxy: GeometryProxy) -> [LayoutDebugRegion]? {
+        private func divisionRegions(in proxy: GeometryProxy) -> [LayoutScopeRegion]? {
             guard snapshot.isWindow, #available(iOS 27.1, *) else { return nil }
             let options: ReservedRegion.QueryOptions = visibility.includeInactive ? .includeInactive : []
             return proxy.reservedRegions(kind: .division, options: options, layoutDirectionBehavior: .fixed).map {
-                LayoutDebugRegion(
+                LayoutScopeRegion(
                     frame: $0.frame,
                     margins: $0.margins,
                     isActive: $0.isActive,
@@ -38,8 +38,8 @@ import SwiftUI
         }
     }
 
-    private struct LayoutDebugGuides: View {
-        let guides: [LayoutDebugGuide]
+    private struct LayoutScopeGuides: View {
+        let guides: [LayoutScopeGuide]
 
         var body: some View {
             Canvas { context, _ in
@@ -51,8 +51,8 @@ import SwiftUI
         }
     }
 
-    private struct LayoutDebugReadout: View {
-        let rows: [LayoutDebugReadoutRow]
+    private struct LayoutScopeReadout: View {
+        let rows: [LayoutScopeReadoutRow]
         let spacing: CGFloat
 
         var body: some View {
@@ -71,13 +71,13 @@ import SwiftUI
     }
 
     #Preview("Window: hinge and reserved regions") {
-        LayoutDebugOverlay(snapshot: LayoutDebugSnapshot(
+        LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(
             size: CGSize(width: 600, height: 400),
             safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84),
             contentMargins: nil,
             regions: [
-                LayoutDebugRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8), isActive: false, isDivision: true),
-                LayoutDebugRegion(frame: CGRect(x: 516, y: 0, width: 84, height: 120), margins: EdgeInsets(), isActive: true, isDivision: false),
+                LayoutScopeRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8), isActive: false, isDivision: true),
+                LayoutScopeRegion(frame: CGRect(x: 516, y: 0, width: 84, height: 120), margins: EdgeInsets(), isActive: true, isDivision: false),
             ],
             isWindow: true,
             hinge: .reading(status: "fully open", angleDegrees: 180)
@@ -85,11 +85,11 @@ import SwiftUI
     }
 
     #Preview("Local: zero guides, unavailable hinge") {
-        LayoutDebugOverlay(snapshot: LayoutDebugSnapshot(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [], hinge: .unavailable))
+        LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [], hinge: .unavailable))
     }
 
     #Preview("Window: large screen corners") {
-        LayoutDebugOverlay(snapshot: LayoutDebugSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84), contentMargins: nil, regions: [], isWindow: true))
+        LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84), contentMargins: nil, regions: [], isWindow: true))
             .frame(width: 600, height: 400)
             .containerShape(.rect(cornerRadius: 80))
             .background(.white)
@@ -97,6 +97,6 @@ import SwiftUI
     }
 
     #Preview("Window: asymmetric RTL insets") {
-        LayoutDebugOverlay(snapshot: LayoutDebugSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 84, bottom: 34, trailing: 12), contentMargins: nil, regions: [], isWindow: true, layoutDirection: .rightToLeft))
+        LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 84, bottom: 34, trailing: 12), contentMargins: nil, regions: [], isWindow: true, layoutDirection: .rightToLeft))
     }
 #endif

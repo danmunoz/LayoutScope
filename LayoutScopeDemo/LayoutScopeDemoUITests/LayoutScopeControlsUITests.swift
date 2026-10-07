@@ -1,6 +1,6 @@
 import XCTest
 
-final class LayoutDebugControlsUITests: XCTestCase {
+final class LayoutScopeControlsUITests: XCTestCase {
     @MainActor
     func testEveryToggleChangesState() {
         continueAfterFailure = false

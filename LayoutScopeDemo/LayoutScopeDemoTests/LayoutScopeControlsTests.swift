@@ -6,15 +6,15 @@ import UIKit
 #if DEBUG
     @MainActor
     @Suite(.serialized)
-    struct LayoutDebugControlsTests {
-        private var snapshot: LayoutDebugSnapshot {
-            LayoutDebugSnapshot(
+    struct LayoutScopeControlsTests {
+        private var snapshot: LayoutScopeSnapshot {
+            LayoutScopeSnapshot(
                 size: CGSize(width: 600, height: 400),
                 safeAreaInsets: EdgeInsets(top: 20, leading: 0, bottom: 34, trailing: 0),
                 contentMargins: nil,
                 regions: [
-                    LayoutDebugRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(), isActive: false, isDivision: true),
-                    LayoutDebugRegion(frame: CGRect(x: 516, y: 0, width: 84, height: 120), margins: EdgeInsets(), isActive: true, isDivision: false),
+                    LayoutScopeRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(), isActive: false, isDivision: true),
+                    LayoutScopeRegion(frame: CGRect(x: 516, y: 0, width: 84, height: 120), margins: EdgeInsets(), isActive: true, isDivision: false),
                 ],
                 isWindow: true,
                 hinge: .reading(status: ".fullyOpen", angleDegrees: 180),
@@ -32,13 +32,13 @@ import UIKit
         }
 
         @Test func safeAreaToggleHidesItsBandsAndReadout() {
-            let visibility = LayoutDebugVisibility(safeArea: false)
+            let visibility = LayoutScopeVisibility(safeArea: false)
             #expect(snapshot.guides(visibility: visibility).count == 2)
             #expect(!snapshot.readout(visibility: visibility).contains { $0.text.hasPrefix("safe area") })
         }
 
         @Test func inactiveTogglePreservesActiveOcclusions() {
-            let visibility = LayoutDebugVisibility(includeInactive: false)
+            let visibility = LayoutScopeVisibility(includeInactive: false)
             #expect(snapshot.guides(visibility: visibility).count == 3)
             let text = snapshot.readout(visibility: visibility).map(\.text)
             #expect(!text.contains("division #1 · inactive"))
@@ -46,23 +46,23 @@ import UIKit
         }
 
         @Test func eachRegionKindCanBeHiddenIndependently() {
-            let noDivisions = LayoutDebugVisibility(divisions: false)
+            let noDivisions = LayoutScopeVisibility(divisions: false)
             #expect(snapshot.guides(visibility: noDivisions).count == 3)
             #expect(!snapshot.readout(visibility: noDivisions).contains { $0.text.hasPrefix("division") })
-            let noOcclusions = LayoutDebugVisibility(occlusions: false)
+            let noOcclusions = LayoutScopeVisibility(occlusions: false)
             #expect(snapshot.guides(visibility: noOcclusions).count == 3)
             #expect(!snapshot.readout(visibility: noOcclusions).contains { $0.text.hasPrefix("occlusion") })
         }
 
         @Test func hingeRemainsVisibleUntilEntireReadoutIsHidden() {
-            let noGuides = LayoutDebugVisibility(safeArea: false, includeInactive: false, occlusions: false, divisions: false)
+            let noGuides = LayoutScopeVisibility(safeArea: false, includeInactive: false, occlusions: false, divisions: false)
             #expect(snapshot.readout(visibility: noGuides).contains { $0.text == "hinge · 180.0° | status: .fullyOpen" })
             #expect(snapshot.readout(visibility: noGuides).contains { $0.text.hasPrefix("size classes") })
-            #expect(snapshot.readout(visibility: LayoutDebugVisibility(readout: false)).isEmpty)
+            #expect(snapshot.readout(visibility: LayoutScopeVisibility(readout: false)).isEmpty)
         }
 
         @Test func measurementAndHingeUpdatesPreserveToggleStateAndTouchPassthrough() throws {
-            let view = WindowLayoutDebugView(frame: CGRect(origin: .zero, size: snapshot.size))
+            let view = LayoutScopeHostingView(frame: CGRect(origin: .zero, size: snapshot.size))
             view.model.visibility.readout = false
             view.model.visibility.includeInactive = false
             view.display(snapshot)

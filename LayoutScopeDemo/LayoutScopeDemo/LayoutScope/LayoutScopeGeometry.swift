@@ -1,7 +1,7 @@
 import SwiftUI
 
 #if DEBUG
-    struct LayoutDebugRegion: Equatable {
+    struct LayoutScopeRegion: Equatable {
         let frame: CGRect
         let margins: EdgeInsets
         let isActive: Bool
@@ -28,7 +28,7 @@ import SwiftUI
         }
     }
 
-    struct LayoutDebugReadoutRow: Identifiable {
+    struct LayoutScopeReadoutRow: Identifiable {
         enum ID: Hashable {
             case field(String)
             case region(kind: String, identity: AnyHashable, field: String)
@@ -39,7 +39,7 @@ import SwiftUI
         let color: Color
     }
 
-    struct LayoutDebugGuide {
+    struct LayoutScopeGuide {
         let fill: CGRect
         let outline: Path
         let color: Color
@@ -49,8 +49,8 @@ import SwiftUI
         var dash: [CGFloat] = [5, 3]
     }
 
-    enum LayoutDebugGeometry {
-        static func insetGuides(_ insets: EdgeInsets, size: CGSize, layoutDirection: LayoutDirection, color: Color) -> [LayoutDebugGuide] {
+    enum LayoutScopeGeometry {
+        static func insetGuides(_ insets: EdgeInsets, size: CGSize, layoutDirection: LayoutDirection, color: Color) -> [LayoutScopeGuide] {
             guard size.width > 0, size.height > 0 else { return [] }
             let left = layoutDirection == .leftToRight ? insets.leading : insets.trailing
             let right = layoutDirection == .leftToRight ? insets.trailing : insets.leading
@@ -69,7 +69,7 @@ import SwiftUI
                 var path = Path()
                 path.move(to: start)
                 path.addLine(to: end)
-                return LayoutDebugGuide(fill: band, outline: path, color: color)
+                return LayoutScopeGuide(fill: band, outline: path, color: color)
             }
         }
 
@@ -100,40 +100,40 @@ import SwiftUI
         }
     }
 
-    struct LayoutDebugSnapshot: Equatable {
+    struct LayoutScopeSnapshot: Equatable {
         let size: CGSize
         let safeAreaInsets: EdgeInsets
         let contentMargins: EdgeInsets?
-        let regions: [LayoutDebugRegion]?
+        let regions: [LayoutScopeRegion]?
         var isWindow = false
         var includeInactiveRegions = false
         var layoutDirection: LayoutDirection = .leftToRight
-        var hinge: LayoutDebugHingeState = .initial
+        var hinge: LayoutScopeHingeState = .initial
         var horizontalSizeClass: UserInterfaceSizeClass?
         var verticalSizeClass: UserInterfaceSizeClass?
 
-        var visibleRegions: [LayoutDebugRegion] {
+        var visibleRegions: [LayoutScopeRegion] {
             let bounds = CGRect(origin: .zero, size: size)
-            return (regions ?? []).filter { LayoutDebugGeometry.intersects($0.frame, bounds: bounds) }
+            return (regions ?? []).filter { LayoutScopeGeometry.intersects($0.frame, bounds: bounds) }
         }
 
-        var guides: [LayoutDebugGuide] {
-            guides(visibility: LayoutDebugVisibility())
+        var guides: [LayoutScopeGuide] {
+            guides(visibility: LayoutScopeVisibility())
         }
 
-        func guides(visibility: LayoutDebugVisibility) -> [LayoutDebugGuide] {
+        func guides(visibility: LayoutScopeVisibility) -> [LayoutScopeGuide] {
             var result = visibility.safeArea
-                ? LayoutDebugGeometry.insetGuides(safeAreaInsets, size: size, layoutDirection: layoutDirection, color: .cyan)
+                ? LayoutScopeGeometry.insetGuides(safeAreaInsets, size: size, layoutDirection: layoutDirection, color: .cyan)
                 : []
             if let contentMargins {
-                result += LayoutDebugGeometry.insetGuides(contentMargins, size: size, layoutDirection: layoutDirection, color: .green)
+                result += LayoutScopeGeometry.insetGuides(contentMargins, size: size, layoutDirection: layoutDirection, color: .green)
             }
             for region in visibleRegions.filter(visibility.shows) {
                 let opacity = region.isActive ? 1.0 : 0.45
                 let occupied = region.occupiedFrame(layoutDirection: layoutDirection)
-                result.append(LayoutDebugGuide(fill: occupied, outline: Path(occupied), color: region.color, opacity: opacity, fillOpacity: 0.2, lineWidth: 2, dash: region.isActive ? [] : [4, 3]))
+                result.append(LayoutScopeGuide(fill: occupied, outline: Path(occupied), color: region.color, opacity: opacity, fillOpacity: 0.2, lineWidth: 2, dash: region.isActive ? [] : [4, 3]))
                 if region.margins != EdgeInsets() {
-                    result.append(LayoutDebugGuide(fill: region.frame, outline: Path(region.frame), color: region.color, opacity: opacity, fillOpacity: 0, dash: [2, 3]))
+                    result.append(LayoutScopeGuide(fill: region.frame, outline: Path(region.frame), color: region.color, opacity: opacity, fillOpacity: 0, dash: [2, 3]))
                 }
             }
             return result
@@ -146,7 +146,7 @@ import SwiftUI
             return EdgeInsets(top: max(0, safeAreaInsets.top) + 8, leading: max(0, left) + 8, bottom: max(0, safeAreaInsets.bottom) + 8, trailing: max(0, right) + 8)
         }
 
-        func readout(divisionRegions: [LayoutDebugRegion]? = nil, visibility: LayoutDebugVisibility = LayoutDebugVisibility()) -> [LayoutDebugReadoutRow] {
+        func readout(divisionRegions: [LayoutScopeRegion]? = nil, visibility: LayoutScopeVisibility = LayoutScopeVisibility()) -> [LayoutScopeReadoutRow] {
             guard visibility.readout else { return [] }
             var rows = [
                 row("edgeOrder", "top / lead / bottom / trail", color: .white),
@@ -164,7 +164,7 @@ import SwiftUI
                 return rows
             }
             let divisions = (divisionRegions ?? visibleRegions.filter(\.isDivision))
-                .filter { LayoutDebugGeometry.intersects($0.frame, bounds: CGRect(origin: .zero, size: size)) }
+                .filter { LayoutScopeGeometry.intersects($0.frame, bounds: CGRect(origin: .zero, size: size)) }
             let occlusions = visibleRegions.filter { !$0.isDivision }
             for group in [divisions, occlusions] {
                 for (index, region) in group.filter(visibility.shows).enumerated() {
@@ -176,7 +176,7 @@ import SwiftUI
                     ]
                     if region.isDivision {
                         let bounds = CGRect(origin: .zero, size: size)
-                        let contentRegions = LayoutDebugGeometry.regions(onEitherSideOf: region.frame, in: bounds)
+                        let contentRegions = LayoutScopeGeometry.regions(onEitherSideOf: region.frame, in: bounds)
                         for (regionIndex, frame) in contentRegions.enumerated() {
                             details.append((
                                 "divisionRegion\(regionIndex).title",
@@ -199,15 +199,15 @@ import SwiftUI
                         details.append(("margins", "  included margins · \(insets(region.margins))", .white))
                     }
                     rows += details.map { field, text, color in
-                        LayoutDebugReadoutRow(id: .region(kind: region.name, identity: identity, field: field), text: text, color: color)
+                        LayoutScopeReadoutRow(id: .region(kind: region.name, identity: identity, field: field), text: text, color: color)
                     }
                 }
             }
             return rows
         }
 
-        private func row(_ id: String, _ text: String, color: Color) -> LayoutDebugReadoutRow {
-            LayoutDebugReadoutRow(id: .field(id), text: text, color: color)
+        private func row(_ id: String, _ text: String, color: Color) -> LayoutScopeReadoutRow {
+            LayoutScopeReadoutRow(id: .field(id), text: text, color: color)
         }
 
         private func insets(_ insets: EdgeInsets) -> String {
