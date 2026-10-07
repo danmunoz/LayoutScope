@@ -4,7 +4,7 @@ A small SwiftUI debug overlay for inspecting window layout on iPhone Duo and oth
 iOS devices. It shows safe areas, reserved regions, size classes, and hinge state.
 No external dependencies; both modifiers are no-ops in release builds.
 
-Requires **Xcode 27.1+, Swift 6.2+, and iOS 27+**. Hinge and reserved-region
+Requires **Xcode 27.1+, Swift 6.2+, and iOS 26+**. Hinge and reserved-region
 readings require iOS 27.1; hinge data depends on the device.
 
 <p>

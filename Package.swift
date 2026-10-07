@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "LayoutScope",
-    platforms: [.iOS("27.0")],
+    platforms: [.iOS("26.0")],
     products: [
         .library(name: "LayoutScope", targets: ["LayoutScope"]),
     ],

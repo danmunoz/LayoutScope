@@ -24,7 +24,10 @@ public extension View {
                 LayoutScopeBridge(includeInactiveRegions: includeInactiveRegions, hinge: hinge, cornerRadii: cornerRadii)
                     .ignoresSafeArea()
                     .onGeometryChange(for: RectangleCornerRadii.self) { proxy in
-                        proxy.concentricCornerRadii ?? RectangleCornerRadii()
+                        if #available(iOS 27.0, *) {
+                            return proxy.concentricCornerRadii ?? RectangleCornerRadii()
+                        }
+                        return RectangleCornerRadii()
                     } action: { cornerRadii = $0 }
             }
             .modifier(LayoutScopeHingeObserver { hinge = $0 })
