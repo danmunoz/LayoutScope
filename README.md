@@ -18,7 +18,9 @@ readings require iOS 27.1; hinge data depends on the device.
    ```text
    https://github.com/danmunoz/LayoutScope.git
    ```
-2. Select **Branch → main**, then **Add Package**.
+2. Select **Up to Next Major Version**, set the minimum version to **1.0.0**, then
+   choose **Add Package**. SwiftPM resolves this version range from the repository's
+   release tags, so the `1.0.0` tag must be published before the dependency can resolve.
 3. Add the **LayoutScope** library product to your app target.
 
 ## Use
