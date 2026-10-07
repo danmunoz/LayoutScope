@@ -65,3 +65,7 @@ coordinates are relative to the inspected view.
 
 To try it, open `LayoutScopeDemo/LayoutScopeDemo.xcodeproj` and run the
 **LayoutScopeDemo** scheme on the Duo simulator. The screenshots above are from this demo.
+
+## License
+
+[MIT](LICENSE).
