@@ -6,6 +6,11 @@
 	objectVersion = 90;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A11A00000000000000000001 /* LayoutScope in Frameworks */ = {isa = PBXBuildFile; productRef = A11A00000000000000000003 /* LayoutScope */; };
+		A11A00000000000000000002 /* LayoutScope in Frameworks */ = {isa = PBXBuildFile; productRef = A11A00000000000000000004 /* LayoutScope */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6E18F83E3061C558009EBD8B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -51,11 +56,13 @@
 		000000000000000130000000 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				A11A00000000000000000001 /* LayoutScope in Frameworks */,
 			);
 		};
 		6E18F83A3061C558009EBD8B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				A11A00000000000000000002 /* LayoutScope in Frameworks */,
 			);
 		};
 		6E18F8443061C558009EBD8B /* Frameworks */ = {
@@ -103,6 +110,9 @@
 				000000000000000000000010 /* LayoutScopeDemo */,
 			);
 			name = LayoutScopeDemo;
+			packageProductDependencies = (
+				A11A00000000000000000003 /* LayoutScope */,
+			);
 			productName = MyApp;
 			productReference = 000000000000000000000120 /* LayoutScopeDemo.app */;
 			productType = "com.apple.product-type.application";
@@ -124,6 +134,9 @@
 				6E18F8403061C558009EBD8B /* LayoutScopeDemoTests */,
 			);
 			name = LayoutScopeDemoTests;
+			packageProductDependencies = (
+				A11A00000000000000000004 /* LayoutScope */,
+			);
 			productName = LayoutScopeDemoTests;
 			productReference = 6E18F83D3061C558009EBD8B /* LayoutScopeDemoTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -173,6 +186,9 @@
 			);
 			mainGroup = 000000000000000000000001;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A11A00000000000000000005 /* XCLocalSwiftPackageReference ".." */,
+			);
 			preferredProjectObjectVersion = 90;
 			productRefGroup = 000000000000000000000020 /* Products */;
 			projectDirPath = "";
@@ -573,6 +589,26 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A11A00000000000000000005 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A11A00000000000000000003 /* LayoutScope */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A11A00000000000000000005 /* XCLocalSwiftPackageReference ".." */;
+			productName = LayoutScope;
+		};
+		A11A00000000000000000004 /* LayoutScope */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A11A00000000000000000005 /* XCLocalSwiftPackageReference ".." */;
+			productName = LayoutScope;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 000000000000000000000000 /* Project object */;
 }

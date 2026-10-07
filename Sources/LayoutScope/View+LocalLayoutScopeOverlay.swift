@@ -1,6 +1,6 @@
 import SwiftUI
 
-extension View {
+public extension View {
     /// Visualizes this view's safe area, container content margins, and reserved regions.
     /// Apply inside the container being inspected; already-consumed insets can be zero.
     /// Debug only. Content margins and reserved regions require iOS 27.1.

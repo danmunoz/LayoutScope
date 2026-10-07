@@ -49,7 +49,7 @@ import UIKit
             model.snapshot
         }
 
-        deinit {
+        isolated deinit {
             displayLink?.invalidate()
         }
 

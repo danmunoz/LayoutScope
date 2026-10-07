@@ -1,4 +1,4 @@
-@testable import LayoutScopeDemo
+@testable import LayoutScope
 import SwiftUI
 import Testing
 

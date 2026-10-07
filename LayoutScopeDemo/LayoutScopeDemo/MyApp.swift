@@ -1,3 +1,4 @@
+import LayoutScope
 import SwiftUI
 
 @main struct MyApp: App {
