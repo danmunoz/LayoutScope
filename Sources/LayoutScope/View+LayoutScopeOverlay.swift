@@ -2,11 +2,17 @@ import SwiftUI
 import UIKit
 
 public extension View {
-    /// Attach once to the root view inside each WindowGroup.
-    /// Draws window diagnostics without affecting content layout; a no-op in release builds.
-    func layoutScopeOverlay(includeInactiveRegions: Bool = true) -> some View {
+    /// Adds the LayoutScope window diagnostics overlay to this view.
+    ///
+    /// Attach once to the root view inside each `WindowGroup`. The overlay does
+    /// not affect content layout, and this modifier is a no-op in release builds.
+    ///
+    /// - Parameters:
+    ///   - includeInactiveRegions: Whether to display inactive reserved regions. Defaults to `true`.
+    ///   - hidden: Whether to hide the entire diagnostic overlay. Defaults to `false`.
+    func layoutScopeOverlay(includeInactiveRegions: Bool = true, hidden: Bool = false) -> some View {
         #if DEBUG
-            modifier(LayoutScopeOverlayModifier(includeInactiveRegions: includeInactiveRegions))
+            modifier(LayoutScopeOverlayModifier(includeInactiveRegions: includeInactiveRegions, hidden: hidden))
         #else
             self
         #endif
@@ -16,12 +22,13 @@ public extension View {
 #if DEBUG
     private struct LayoutScopeOverlayModifier: ViewModifier {
         let includeInactiveRegions: Bool
+        let hidden: Bool
         @State private var hinge: LayoutScopeHingeState = .initial
         @State private var cornerRadii = RectangleCornerRadii()
 
         func body(content: Content) -> some View {
             content.frame(maxWidth: .infinity, maxHeight: .infinity).overlay {
-                LayoutScopeBridge(includeInactiveRegions: includeInactiveRegions, hinge: hinge, cornerRadii: cornerRadii)
+                LayoutScopeBridge(includeInactiveRegions: includeInactiveRegions, hidden: hidden, hinge: hinge, cornerRadii: cornerRadii)
                     .ignoresSafeArea()
                     .onGeometryChange(for: RectangleCornerRadii.self) { proxy in
                         if #available(iOS 27.0, *) {
@@ -36,6 +43,7 @@ public extension View {
 
     private struct LayoutScopeBridge: UIViewRepresentable {
         let includeInactiveRegions: Bool
+        let hidden: Bool
         let hinge: LayoutScopeHingeState
         let cornerRadii: RectangleCornerRadii
 
@@ -44,6 +52,7 @@ public extension View {
         }
 
         func updateUIView(_ probe: LayoutScopeAttachmentView, context _: Context) {
+            probe.overlay.isHidden = hidden
             probe.overlay.includeInactiveRegions = includeInactiveRegions
             probe.overlay.hinge = hinge
             probe.overlay.model.cornerRadii = cornerRadii

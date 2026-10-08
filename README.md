@@ -45,7 +45,9 @@ struct ExampleApp: App {
 
 The bottom-left switches show or hide safe areas, inactive regions, occlusions,
 divisions, and the entire readout. Inactive regions are included by default;
-start without them using `.layoutScopeOverlay(includeInactiveRegions: false)`.
+start without them using `.layoutScopeOverlay(includeInactiveRegions: false)`. To
+hide the entire LayoutScope overlay programmatically, use
+`.layoutScopeOverlay(hidden: true)`; `hidden` defaults to `false`.
 The guides and readout pass touches through to your app; only the switches intercept them.
 
 To inspect an individual view instead, use `.localLayoutScopeOverlay()` inside

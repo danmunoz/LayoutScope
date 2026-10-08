@@ -5,7 +5,7 @@ import SwiftUI
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .layoutScopeOverlay()
+                .layoutScopeOverlay(hidden: false)
         }
     }
 }
