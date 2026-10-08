@@ -22,15 +22,20 @@ The open screenshot shows the division's content areas and included margins.
    ```text
    https://github.com/danmunoz/LayoutScope.git
    ```
-2. Select **Up to Next Major Version**, set the minimum version to **1.0.0**, then
-   choose **Add Package**. The `1.0.0` release tag is published.
+2. Select **Up to Next Major Version**, set the minimum version to **1.2.0**, then
+   choose **Add Package**.
 3. Add the **LayoutScope** library product to your app target.
 
-This README describes the current checkout. The published **1.0.0** release has
-the earlier readout, uses `.localLayoutScopeOverlay()` for view diagnostics, and
-does not include the window modifier's `hidden` parameter. To use the APIs and
-panel shown below before the next release, clone this repository and add its
-folder as a local package dependency in Xcode.
+For a `Package.swift` dependency, use:
+
+```swift
+.package(url: "https://github.com/danmunoz/LayoutScope.git", from: "1.2.0")
+```
+
+Version **1.2.0** includes the panels and APIs described below. When upgrading
+from 1.0.0, rename `.localLayoutScopeOverlay()` to `.viewLayoutScopeOverlay()`;
+the old name remains available as a deprecated compatibility alias, retaining its
+default of excluding inactive regions. The new name includes them by default.
 
 ## Use
 

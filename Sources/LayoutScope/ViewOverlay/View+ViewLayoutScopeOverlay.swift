@@ -1,6 +1,12 @@
 import SwiftUI
 
 public extension View {
+    /// Compatibility name for the view diagnostics overlay introduced in 1.0.0.
+    @available(*, deprecated, renamed: "viewLayoutScopeOverlay(includeInactiveRegions:)")
+    func localLayoutScopeOverlay(includeInactiveRegions: Bool = false) -> some View {
+        viewLayoutScopeOverlay(includeInactiveRegions: includeInactiveRegions)
+    }
+
     /// Visualizes this view's safe area, container content margins, and reserved regions.
     /// Apply inside layout modifiers such as `ignoresSafeArea` to inspect their expanded content.
     /// Debug only. Content margins and reserved regions require iOS 27.1.

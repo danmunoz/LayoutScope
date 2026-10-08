@@ -7,6 +7,16 @@ import UIKit
     @MainActor
     @Suite(.serialized)
     struct LayoutScopeViewOverlayTests {
+        @Test func legacyModifierStillDrawsSafeAreaGuides() async throws {
+            try await withWindow(name: "legacy") {
+                Color.white.localLayoutScopeOverlay(includeInactiveRegions: false).ignoresSafeArea()
+            } verify: { (window: UIWindow, image: CGImage) throws in
+                let size = window.bounds.size
+                try #require(window.safeAreaInsets.bottom > 20)
+                #expect(try isCyan(image, at: CGPoint(x: size.width / 4, y: size.height - 10)))
+            }
+        }
+
         @Test func ignoredSafeAreasDrawAtActualEdges() async throws {
             try await withWindow(name: "ignored") {
                 Color.white.viewLayoutScopeOverlay().ignoresSafeArea()
