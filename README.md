@@ -50,10 +50,31 @@ hide the entire LayoutScope overlay programmatically, use
 `.layoutScopeOverlay(hidden: true)`; `hidden` defaults to `false`.
 The guides and readout pass touches through to your app; only the switches intercept them.
 
-To inspect an individual view instead, use `.localLayoutScopeOverlay()` inside
-the container you want to measure. It also shows content margins in green;
-already-consumed safe-area insets may be zero. This local helper has no switches
-and excludes inactive regions by default.
+To inspect an individual view, apply `.localLayoutScopeOverlay()` to the content
+inside the layout modifiers you want to inspect:
+
+```swift
+Color.yellow.opacity(0.3)
+    .localLayoutScopeOverlay()
+    .ignoresSafeArea()
+```
+
+Modifier order matters: `ignoresSafeArea` expands its inner content while its
+outer frame can still be the safe-area-sized proposal. Putting the diagnostic
+modifier after it inspects that outer frame instead of the expanded content.
+Similarly, put the overlay inside `contentMargins` to read those margins.
+
+The local overlay draws only safe-area overlap within the inspected bounds;
+a view that fits inside the safe area has no cyan guides. It also shows available
+content margins in green and intersecting occlusions/divisions, clipped to the
+view. Inactive regions appear dashed by default; exclude them with
+`.localLayoutScopeOverlay(includeInactiveRegions: false)`. This helper has no switches.
+Its compact readout is aligned to the bottom center of the inspected view. It shows
+the view origin in SwiftUI's global coordinate space, size, size classes, and only
+nonzero safe-area insets and content margins.
+Each inset label sits above its values, in top / leading / bottom / trailing order.
+Hinge and reserved-region details belong to the window readout; local region guides
+still render.
 
 ## Readout
 

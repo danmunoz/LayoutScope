@@ -74,10 +74,21 @@ import SwiftUI
         }
 
         static func intersects(_ frame: CGRect, bounds: CGRect) -> Bool {
-            // CGRect.intersects excludes zero-width division lines.
-            !frame.isNull && !frame.isInfinite && bounds.width > 0 && bounds.height > 0
-                && frame.maxX >= bounds.minX && frame.minX <= bounds.maxX
-                && frame.maxY >= bounds.minY && frame.minY <= bounds.maxY
+            guard !frame.isNull, !frame.isInfinite, bounds.width > 0, bounds.height > 0,
+                  frame.width > 0 || frame.height > 0 else { return false }
+            // Keep division lines, but exclude area regions that only touch an
+            // edge. Otherwise an occlusion outside a respected safe area leaks
+            // a border and readout into the local overlay.
+            if frame.width == 0 {
+                return frame.minX >= bounds.minX && frame.minX <= bounds.maxX
+                    && frame.maxY > bounds.minY && frame.minY < bounds.maxY
+            }
+            if frame.height == 0 {
+                return frame.minY >= bounds.minY && frame.minY <= bounds.maxY
+                    && frame.maxX > bounds.minX && frame.minX < bounds.maxX
+            }
+            return frame.maxX > bounds.minX && frame.minX < bounds.maxX
+                && frame.maxY > bounds.minY && frame.minY < bounds.maxY
         }
 
         static func regions(onEitherSideOf division: CGRect, in bounds: CGRect) -> [CGRect] {

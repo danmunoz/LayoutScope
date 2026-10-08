@@ -2,9 +2,9 @@ import SwiftUI
 
 public extension View {
     /// Visualizes this view's safe area, container content margins, and reserved regions.
-    /// Apply inside the container being inspected; already-consumed insets can be zero.
+    /// Apply inside layout modifiers such as `ignoresSafeArea` to inspect their expanded content.
     /// Debug only. Content margins and reserved regions require iOS 27.1.
-    func localLayoutScopeOverlay(includeInactiveRegions: Bool = false) -> some View {
+    func localLayoutScopeOverlay(includeInactiveRegions: Bool = true) -> some View {
         #if DEBUG
             modifier(LocalLayoutScopeOverlayModifier(includeInactiveRegions: includeInactiveRegions))
         #else
@@ -16,23 +16,25 @@ public extension View {
 #if DEBUG
     private struct LocalLayoutScopeOverlayModifier: ViewModifier {
         let includeInactiveRegions: Bool
-        @State private var hinge: LayoutScopeHingeState = .initial
+        @State private var safeAreaInsets = EdgeInsets()
 
         func body(content: Content) -> some View {
             content.overlay {
                 GeometryReader { proxy in
                     LayoutScopeLocalOverlay(
+                        origin: proxy.frame(in: .global).origin,
                         size: proxy.size,
-                        safeAreaInsets: proxy.safeAreaInsets,
+                        safeAreaInsets: safeAreaInsets,
                         contentMargins: layoutScopeContentMargins(proxy),
-                        regions: layoutScopeReservedRegions(proxy, includeInactive: includeInactiveRegions),
-                        hinge: hinge
+                        regions: layoutScopeReservedRegions(proxy, includeInactive: includeInactiveRegions)
                     )
+                    .overlay {
+                        LayoutScopeLocalSafeAreaProbe { safeAreaInsets = $0 }
+                    }
                 }
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
             }
-            .modifier(LayoutScopeHingeObserver { hinge = $0 })
         }
     }
 
@@ -62,22 +64,30 @@ public extension View {
     }
 
     private struct LayoutScopeLocalOverlay: View {
+        var origin: CGPoint = .zero
         let size: CGSize
         let safeAreaInsets: EdgeInsets
         let contentMargins: EdgeInsets?
         let regions: [LayoutScopeRegion]?
-        var hinge: LayoutScopeHingeState = .initial
 
         @Environment(\.layoutDirection) private var layoutDirection
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
         @Environment(\.verticalSizeClass) private var verticalSizeClass
 
         private var snapshot: LayoutScopeSnapshot {
-            LayoutScopeSnapshot(size: size, safeAreaInsets: safeAreaInsets, contentMargins: contentMargins, regions: regions, layoutDirection: layoutDirection, hinge: hinge, horizontalSizeClass: horizontalSizeClass, verticalSizeClass: verticalSizeClass)
+            LayoutScopeSnapshot(size: size, safeAreaInsets: safeAreaInsets, contentMargins: contentMargins, regions: regions, layoutDirection: layoutDirection, horizontalSizeClass: horizontalSizeClass, verticalSizeClass: verticalSizeClass)
         }
 
         var body: some View {
-            LayoutScopeOverlay(snapshot: snapshot)
+            ZStack(alignment: .bottom) {
+                LayoutScopeGuides(guides: snapshot.guides)
+                LayoutScopeLocalReadout(origin: origin, snapshot: snapshot)
+                    .padding(8)
+            }
+            .frame(width: size.width, height: size.height)
+            .clipped()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
     }
 
@@ -87,6 +97,12 @@ public extension View {
                 .localLayoutScopeOverlay()
                 .navigationTitle(Text(verbatim: "Layout diagnostics"))
         }
+    }
+
+    #Preview("Expanded safe-area overlap") {
+        Color.gray.opacity(0.2)
+            .localLayoutScopeOverlay()
+            .ignoresSafeArea()
     }
 
     #Preview("Division and occlusion fixtures") {
@@ -105,12 +121,8 @@ public extension View {
         LayoutScopeLocalOverlay(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
     }
 
-    #Preview("Partially open hinge") {
-        LayoutScopeLocalOverlay(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [], hinge: .reading(status: "partially open", angleDegrees: 90))
-    }
-
-    #Preview("Hinge unavailable") {
-        LayoutScopeLocalOverlay(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [], hinge: .unavailable)
+    #Preview("Offset local view") {
+        LayoutScopeLocalOverlay(origin: CGPoint(x: 24, y: 80), size: CGSize(width: 300, height: 200), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
     }
 
     #Preview("RTL asymmetric margins") {

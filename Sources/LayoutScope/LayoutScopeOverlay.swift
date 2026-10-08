@@ -38,7 +38,7 @@ import SwiftUI
         }
     }
 
-    private struct LayoutScopeGuides: View {
+    struct LayoutScopeGuides: View {
         let guides: [LayoutScopeGuide]
 
         var body: some View {
