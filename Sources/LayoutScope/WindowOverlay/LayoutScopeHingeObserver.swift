@@ -23,27 +23,16 @@ import SwiftUI
 
         @available(iOS 27.1, *)
         init(status: DeviceHinge.Status, angle: Angle) {
-            let label: String
-            if status == .closed {
-                label = ".closed"
+            let label = if status == .closed {
+                "Closed"
             } else if status == .partiallyOpen {
-                label = ".partiallyOpen"
+                "Partially open"
             } else if status == .fullyOpen {
-                label = ".fullyOpen"
+                "Fully open"
             } else {
-                label = "unknown"
+                "Unknown"
             }
             self = .reading(status: label, angleDegrees: angle.degrees)
-        }
-
-        var readout: String {
-            switch self {
-            case .unsupported: "hinge · requires iOS 27.1"
-            case .awaitingUpdate: "hinge · awaiting update"
-            case .unavailable: "hinge · unavailable"
-            case let .reading(status, angleDegrees):
-                "hinge · \(String(format: "%.1f", angleDegrees))° | status: \(status)"
-            }
         }
     }
 

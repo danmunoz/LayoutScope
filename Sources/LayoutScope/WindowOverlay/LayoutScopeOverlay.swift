@@ -4,23 +4,35 @@ import SwiftUI
     struct LayoutScopeOverlay: View {
         let snapshot: LayoutScopeSnapshot
         var visibility = LayoutScopeVisibility()
+        var reportReadoutFrame: (CGRect) -> Void = { _ in }
 
         var body: some View {
             GeometryReader { proxy in
                 let divisions = divisionRegions(in: proxy)
+                let data = snapshot.readoutData(divisionRegions: divisions, visibility: visibility)
+                let insets = snapshot.readoutInsets
+                let availableWidth = max(0, proxy.size.width - insets.leading - insets.trailing)
+                let availableHeight = max(0, proxy.size.height - insets.top - insets.bottom)
+
                 ZStack(alignment: .topLeading) {
                     LayoutScopeGuides(guides: snapshot.guides(visibility: visibility))
-                    if visibility.readout {
-                        LayoutScopeReadout(rows: snapshot.readout(divisionRegions: divisions, visibility: visibility), spacing: snapshot.isWindow ? 0 : 3)
-                            .padding(snapshot.readoutInsets)
-                    }
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+
+                    LayoutScopeReadout(
+                        data: data,
+                        visibility: visibility,
+                        panelWidth: min(300, availableWidth),
+                        maximumHeight: availableHeight,
+                        reportFrame: reportReadoutFrame,
+                    )
+                    .padding(insets)
                 }
-                .frame(width: snapshot.size.width, height: snapshot.size.height)
+                .frame(width: snapshot.size.width, height: snapshot.size.height, alignment: .topLeading)
+                .coordinateSpace(name: "layoutScope")
             }
             .environment(\.layoutDirection, snapshot.isWindow ? .leftToRight : snapshot.layoutDirection)
             .clipped()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
         }
 
         private func divisionRegions(in proxy: GeometryProxy) -> [LayoutScopeRegion]? {
@@ -32,58 +44,9 @@ import SwiftUI
                     margins: $0.margins,
                     isActive: $0.isActive,
                     isDivision: true,
-                    id: AnyHashable($0.id)
+                    id: AnyHashable($0.id),
                 )
             }
         }
-    }
-
-    private struct LayoutScopeReadout: View {
-        let rows: [LayoutScopeReadoutRow]
-        let spacing: CGFloat
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: spacing) {
-                ForEach(rows) { row in
-                    Text(verbatim: row.text)
-                        .foregroundStyle(row.color)
-                }
-            }
-            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .fixedSize(horizontal: false, vertical: true)
-            .padding()
-            .containerCornerOffset([.top, .leading], sizeToFit: true)
-            .background(.black.opacity(0.78), in: ConcentricRectangle(corners: .concentric(minimum: .fixed(8))))
-        }
-    }
-
-    #Preview("Window: hinge and reserved regions") {
-        LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(
-            size: CGSize(width: 600, height: 400),
-            safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84),
-            contentMargins: nil,
-            regions: [
-                LayoutScopeRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8), isActive: false, isDivision: true),
-                LayoutScopeRegion(frame: CGRect(x: 516, y: 0, width: 84, height: 120), margins: EdgeInsets(), isActive: true, isDivision: false),
-            ],
-            isWindow: true,
-            hinge: .reading(status: "fully open", angleDegrees: 180)
-        ))
-    }
-
-    #Preview("View: zero guides, unavailable hinge") {
-        LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [], hinge: .unavailable))
-    }
-
-    #Preview("Window: large screen corners") {
-        LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84), contentMargins: nil, regions: [], isWindow: true))
-            .frame(width: 600, height: 400)
-            .containerShape(.rect(cornerRadius: 80))
-            .background(.white)
-            .clipShape(.rect(cornerRadius: 80))
-    }
-
-    #Preview("Window: asymmetric RTL insets") {
-        LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 84, bottom: 34, trailing: 12), contentMargins: nil, regions: [], isWindow: true, layoutDirection: .rightToLeft))
     }
 #endif

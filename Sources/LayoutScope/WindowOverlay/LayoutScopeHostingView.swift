@@ -9,6 +9,7 @@ import UIKit
         var visibility = LayoutScopeVisibility()
         var cornerRadii = RectangleCornerRadii()
         @ObservationIgnored var controlsFrame = CGRect.zero
+        @ObservationIgnored var readoutFrame = CGRect.zero
     }
 
     struct LayoutScopeContent: View {
@@ -17,7 +18,7 @@ import UIKit
         var body: some View {
             if let snapshot = model.snapshot {
                 ZStack(alignment: .bottomLeading) {
-                    LayoutScopeOverlay(snapshot: snapshot, visibility: model.visibility)
+                    LayoutScopeOverlay(snapshot: snapshot, visibility: model.visibility) { model.readoutFrame = $0 }
                     LayoutScopeControls(visibility: $model.visibility)
                         .onGeometryChange(for: CGRect.self) { proxy in
                             proxy.frame(in: .named("layoutScope"))
@@ -107,11 +108,10 @@ import UIKit
                 contentMargins: nil,
                 regions: reservedRegions(in: window, direction: direction),
                 isWindow: true,
-                includeInactiveRegions: model.visibility.includeInactive,
                 layoutDirection: direction,
                 hinge: hinge,
                 horizontalSizeClass: sizeClass(window.traitCollection.horizontalSizeClass),
-                verticalSizeClass: sizeClass(window.traitCollection.verticalSizeClass)
+                verticalSizeClass: sizeClass(window.traitCollection.verticalSizeClass),
             ))
         }
 
@@ -157,9 +157,10 @@ import UIKit
             }
         }
 
-        /// Only the controls intercept touches. Canvas and readout remain passthrough.
+        /// Only visible controls and the readout panel intercept touches.
         override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-            guard model.controlsFrame.contains(point) else { return nil }
+            let readoutContainsPoint = model.visibility.readout && model.readoutFrame.contains(point)
+            guard !isHidden, bounds.contains(point), model.controlsFrame.contains(point) || readoutContainsPoint else { return nil }
             return super.hitTest(point, with: event)
         }
 

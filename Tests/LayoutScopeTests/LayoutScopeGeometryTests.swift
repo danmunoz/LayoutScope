@@ -29,14 +29,31 @@ import Testing
             #expect(LayoutScopeGeometry.regions(onEitherSideOf: CGRect(x: 700, y: 0, width: 20, height: 400), in: bounds).isEmpty)
         }
 
-        @Test func inactiveDivisionReadoutIncludesBothRegions() {
-            let division = LayoutScopeRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(), isActive: false, isDivision: true)
-            let snapshot = LayoutScopeSnapshot(size: bounds.size, safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [], isWindow: true, includeInactiveRegions: true)
-            let labels = snapshot.readout(divisionRegions: [division]).map(\.text)
-            #expect(labels.contains("division #1 · inactive"))
-            #expect(labels.contains("  region #1"))
-            #expect(labels.contains("  region #2"))
-            #expect(labels.contains("    origin (x,y) · 312.0, 0.0"))
+        @Test func compactPointFormattingSuppressesOnlyRedundantFraction() {
+            #expect(LayoutScopeNumberFormatter.points(455.5) == "455.5")
+            #expect(LayoutScopeNumberFormatter.points(677.3) == "677.3")
+            #expect(LayoutScopeNumberFormatter.points(84) == "84")
+            #expect(LayoutScopeNumberFormatter.points(1000) == "1000")
+            #expect(LayoutScopeNumberFormatter.points(-2.5) == "-2.5")
+            #expect(LayoutScopeNumberFormatter.points(0) == "0")
+        }
+
+        @Test func divisionReadoutUsesFullFrameAndBothContentAreas() throws {
+            let division = LayoutScopeRegion(
+                frame: CGRect(x: 288, y: 0, width: 24, height: 400),
+                margins: EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8),
+                isActive: false,
+                isDivision: true,
+                id: AnyHashable("division-id"),
+            )
+            let snapshot = LayoutScopeSnapshot(size: bounds.size, safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [division], isWindow: true)
+            let value = try #require(snapshot.readoutData().regions.first)
+            #expect(value.frame == division.frame)
+            #expect(value.margins == division.margins)
+            #expect(value.contentAreas == [
+                CGRect(x: 0, y: 0, width: 288, height: 400),
+                CGRect(x: 312, y: 0, width: 288, height: 400),
+            ])
         }
 
         @Test func touchingOcclusionsAreOutsideButDivisionLinesRemainVisible() {

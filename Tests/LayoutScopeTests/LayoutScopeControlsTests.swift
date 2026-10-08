@@ -5,63 +5,85 @@ import UIKit
 
 #if DEBUG
     @MainActor
-    @Suite(.serialized)
     struct LayoutScopeControlsTests {
         private var snapshot: LayoutScopeSnapshot {
+            makeSnapshot(regions: [
+                LayoutScopeRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(), isActive: false, isDivision: true, id: AnyHashable("division")),
+                LayoutScopeRegion(frame: CGRect(x: 516, y: 0, width: 84, height: 120), margins: EdgeInsets(), isActive: true, isDivision: false, id: AnyHashable("occlusion")),
+            ])
+        }
+
+        private func makeSnapshot(regions: [LayoutScopeRegion]?) -> LayoutScopeSnapshot {
             LayoutScopeSnapshot(
                 size: CGSize(width: 600, height: 400),
                 safeAreaInsets: EdgeInsets(top: 20, leading: 0, bottom: 34, trailing: 0),
                 contentMargins: nil,
-                regions: [
-                    LayoutScopeRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(), isActive: false, isDivision: true),
-                    LayoutScopeRegion(frame: CGRect(x: 516, y: 0, width: 84, height: 120), margins: EdgeInsets(), isActive: true, isDivision: false),
-                ],
+                regions: regions,
                 isWindow: true,
-                hinge: .reading(status: ".fullyOpen", angleDegrees: 180),
+                hinge: .reading(status: "Fully open", angleDegrees: 180),
                 horizontalSizeClass: .regular,
-                verticalSizeClass: .compact
+                verticalSizeClass: .compact,
             )
         }
 
-        @Test func readoutReportsBothCurrentSizeClasses() {
-            #expect(snapshot.readout().contains { $0.text == "size classes · h: regular, v: compact" })
+        @Test func contextCombinesHingeAndBothSizeClasses() {
+            #expect(snapshot.readoutData().context == "180° · Fully open   H: Regular · V: Compact")
             var unspecified = snapshot
             unspecified.horizontalSizeClass = nil
             unspecified.verticalSizeClass = nil
-            #expect(unspecified.readout().contains { $0.text == "size classes · h: unspecified, v: unspecified" })
+            #expect(unspecified.readoutData().context.contains("H: Unspecified · V: Unspecified"))
         }
 
-        @Test func safeAreaToggleHidesItsBandsAndReadout() {
+        @Test func safeAreaVisibilityControlsTheSingleInsetRowAndGuideBands() {
             let visibility = LayoutScopeVisibility(safeArea: false)
             #expect(snapshot.guides(visibility: visibility).count == 2)
-            #expect(!snapshot.readout(visibility: visibility).contains { $0.text.hasPrefix("safe area") })
+            #expect(snapshot.readoutData(visibility: visibility).safeAreaInsets == nil)
+            #expect(snapshot.readoutData().safeAreaInsets == snapshot.safeAreaInsets)
         }
 
-        @Test func inactiveTogglePreservesActiveOcclusions() {
-            let visibility = LayoutScopeVisibility(includeInactive: false)
-            #expect(snapshot.guides(visibility: visibility).count == 3)
-            let text = snapshot.readout(visibility: visibility).map(\.text)
-            #expect(!text.contains("division #1 · inactive"))
-            #expect(text.contains("occlusion #1 · active"))
-        }
+        @Test func inactiveAndKindFiltersApplyIndependentlyToRegionsAndGuides() {
+            let inactiveHidden = LayoutScopeVisibility(includeInactive: false)
+            #expect(snapshot.guides(visibility: inactiveHidden).count == 3)
+            #expect(snapshot.readoutData(visibility: inactiveHidden).regions.map(\.kind) == [.occlusion])
 
-        @Test func eachRegionKindCanBeHiddenIndependently() {
             let noDivisions = LayoutScopeVisibility(divisions: false)
             #expect(snapshot.guides(visibility: noDivisions).count == 3)
-            #expect(!snapshot.readout(visibility: noDivisions).contains { $0.text.hasPrefix("division") })
+            #expect(snapshot.readoutData(visibility: noDivisions).regions.map(\.kind) == [.occlusion])
+
             let noOcclusions = LayoutScopeVisibility(occlusions: false)
             #expect(snapshot.guides(visibility: noOcclusions).count == 3)
-            #expect(!snapshot.readout(visibility: noOcclusions).contains { $0.text.hasPrefix("occlusion") })
+            #expect(snapshot.readoutData(visibility: noOcclusions).regions.map(\.kind) == [.division])
         }
 
-        @Test func hingeRemainsVisibleUntilEntireReadoutIsHidden() {
-            let noGuides = LayoutScopeVisibility(safeArea: false, includeInactive: false, occlusions: false, divisions: false)
-            #expect(snapshot.readout(visibility: noGuides).contains { $0.text == "hinge · 180.0° | status: .fullyOpen" })
-            #expect(snapshot.readout(visibility: noGuides).contains { $0.text.hasPrefix("size classes") })
-            #expect(snapshot.readout(visibility: LayoutScopeVisibility(readout: false)).isEmpty)
+        @Test func divisionNumbersAreIndependentFromOcclusionNumbers() {
+            let value = makeSnapshot(regions: [
+                LayoutScopeRegion(frame: CGRect(x: 288, y: 0, width: 24, height: 400), margins: EdgeInsets(), isActive: true, isDivision: true),
+                LayoutScopeRegion(frame: CGRect(x: 516, y: 0, width: 20, height: 20), margins: EdgeInsets(), isActive: true, isDivision: false),
+                LayoutScopeRegion(frame: CGRect(x: 536, y: 0, width: 20, height: 20), margins: EdgeInsets(), isActive: true, isDivision: false),
+            ])
+            let rows = value.readoutData().regions
+            #expect(rows.map(\.number) == [1, 1, 2])
+            #expect(rows.map(\.kind) == [.division, .occlusion, .occlusion])
         }
 
-        @Test func measurementAndHingeUpdatesPreserveToggleStateAndTouchPassthrough() throws {
+        @Test func swiftUIWindowDivisionQueryOverridesSnapshotDivisionValues() {
+            let queried = LayoutScopeRegion(frame: CGRect(x: 280, y: 0, width: 30, height: 400), margins: EdgeInsets(), isActive: false, isDivision: true, id: AnyHashable("sdk-division"))
+            let data = snapshot.readoutData(divisionRegions: [queried])
+            #expect(data.regions.filter { $0.kind == .division }.map(\.id.identity) == [AnyHashable("sdk-division")])
+            #expect(data.regions.first?.frame == queried.frame)
+        }
+
+        @Test func nilAndEmptyRegionResultsRemainDistinct() {
+            let unavailable = makeSnapshot(regions: nil)
+            #expect(!unavailable.readoutData().regionsAvailable)
+            #expect(unavailable.readoutData().regions.isEmpty)
+
+            let empty = makeSnapshot(regions: [])
+            #expect(empty.readoutData().regionsAvailable)
+            #expect(empty.readoutData().regions.isEmpty)
+        }
+
+        @Test func measurementAndHingeUpdatesPreserveToggleStateAndRouteOnlyPanelOrControls() throws {
             let view = LayoutScopeHostingView(frame: CGRect(origin: .zero, size: snapshot.size))
             view.model.visibility.readout = false
             view.model.visibility.includeInactive = false
@@ -70,15 +92,36 @@ import UIKit
             var next = snapshot
             next.hinge = .unavailable
             view.display(next)
-            // Repeating the modifier's original option must not undo a user's toggle.
             view.includeInactiveRegions = true
             #expect(!view.model.visibility.readout)
             #expect(!view.model.visibility.includeInactive)
             #expect(view.hostingController === controller)
+
             view.model.controlsFrame = CGRect(x: 8, y: 200, width: 204, height: 158)
-            #expect(view.hitTest(CGPoint(x: 300, y: 200), with: nil) == nil)
-            #expect(view.hitTest(CGPoint(x: 8, y: 8), with: nil) == nil)
+            view.model.readoutFrame = CGRect(x: 8, y: 8, width: 300, height: 180)
+            #expect(view.hitTest(CGPoint(x: 450, y: 200), with: nil) == nil)
+            #expect(view.hitTest(CGPoint(x: 400, y: 20), with: nil) == nil)
             #expect(view.hitTest(CGPoint(x: 20, y: 220), with: nil) != nil)
+            #expect(view.hitTest(CGPoint(x: 20, y: 20), with: nil) == nil)
+
+            view.model.visibility.readout = true
+            #expect(view.hitTest(CGPoint(x: 20, y: 20), with: nil) != nil)
+            #expect(view.hitTest(CGPoint(x: 20, y: 100), with: nil) != nil)
+
+            // A collapsed header reports only its current bounds. Hiding the
+            // overlay preserves measured geometry for when it becomes visible again.
+            view.model.readoutFrame = CGRect(x: 8, y: 8, width: 300, height: 36)
+            #expect(view.hitTest(CGPoint(x: 20, y: 20), with: nil) != nil)
+            #expect(view.hitTest(CGPoint(x: 20, y: 100), with: nil) == nil)
+            view.model.visibility.readout = false
+            #expect(view.hitTest(CGPoint(x: 20, y: 20), with: nil) == nil)
+            view.model.visibility.readout = true
+            #expect(view.hitTest(CGPoint(x: 20, y: 20), with: nil) != nil)
+
+            view.isHidden = true
+            #expect(view.hitTest(CGPoint(x: 20, y: 220), with: nil) == nil)
+            view.isHidden = false
+            #expect(view.hitTest(CGPoint(x: 20, y: 20), with: nil) != nil)
         }
     }
 #endif

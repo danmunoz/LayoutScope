@@ -12,10 +12,6 @@ import SwiftUI
             isDivision ? .orange : .pink
         }
 
-        var name: String {
-            isDivision ? "division" : "occlusion"
-        }
-
         func occupiedFrame(layoutDirection: LayoutDirection) -> CGRect {
             let left = layoutDirection == .leftToRight ? margins.leading : margins.trailing
             let right = layoutDirection == .leftToRight ? margins.trailing : margins.leading
@@ -23,20 +19,47 @@ import SwiftUI
                 x: frame.minX + min(frame.width, max(0, left)),
                 y: frame.minY + min(frame.height, max(0, margins.top)),
                 width: max(0, frame.width - max(0, left) - max(0, right)),
-                height: max(0, frame.height - max(0, margins.top) - max(0, margins.bottom))
+                height: max(0, frame.height - max(0, margins.top) - max(0, margins.bottom)),
             )
         }
     }
 
-    struct LayoutScopeReadoutRow: Identifiable {
-        enum ID: Hashable {
-            case field(String)
-            case region(kind: String, identity: AnyHashable, field: String)
+    enum LayoutScopeRegionKind: String, Hashable {
+        case division
+        case occlusion
+    }
+
+    struct LayoutScopeReadoutRegion: Identifiable, Equatable {
+        struct ID: Hashable {
+            let kind: LayoutScopeRegionKind
+            let identity: AnyHashable
         }
 
         let id: ID
-        let text: String
-        let color: Color
+        let kind: LayoutScopeRegionKind
+        let number: Int
+        let frame: CGRect
+        let margins: EdgeInsets
+        let isActive: Bool
+        let contentAreas: [CGRect]
+
+        var state: String {
+            isActive ? "Active" : "Inactive"
+        }
+    }
+
+    struct LayoutScopeReadoutData: Equatable {
+        let context: String
+        let safeAreaInsets: EdgeInsets?
+        let regionsAvailable: Bool
+        let regions: [LayoutScopeReadoutRegion]
+    }
+
+    enum LayoutScopeNumberFormatter {
+        static func points(_ value: CGFloat) -> String {
+            let formatted = String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), Double(value))
+            return formatted.hasSuffix(".0") ? String(formatted.dropLast(2)) : formatted
+        }
     }
 
     struct LayoutScopeGuide {
@@ -95,14 +118,13 @@ import SwiftUI
             let divider = division.intersection(bounds)
             guard !divider.isNull else { return [] }
 
-            let candidates: [CGRect]
-            if divider.height >= divider.width {
-                candidates = [
+            let candidates: [CGRect] = if divider.height >= divider.width {
+                [
                     CGRect(x: bounds.minX, y: bounds.minY, width: max(0, divider.minX - bounds.minX), height: bounds.height),
                     CGRect(x: divider.maxX, y: bounds.minY, width: max(0, bounds.maxX - divider.maxX), height: bounds.height),
                 ]
             } else {
-                candidates = [
+                [
                     CGRect(x: bounds.minX, y: bounds.minY, width: bounds.width, height: max(0, divider.minY - bounds.minY)),
                     CGRect(x: bounds.minX, y: divider.maxY, width: bounds.width, height: max(0, bounds.maxY - divider.maxY)),
                 ]
@@ -117,7 +139,6 @@ import SwiftUI
         let contentMargins: EdgeInsets?
         let regions: [LayoutScopeRegion]?
         var isWindow = false
-        var includeInactiveRegions = false
         var layoutDirection: LayoutDirection = .leftToRight
         var hinge: LayoutScopeHingeState = .initial
         var horizontalSizeClass: UserInterfaceSizeClass?
@@ -157,86 +178,56 @@ import SwiftUI
             return EdgeInsets(top: max(0, safeAreaInsets.top) + 8, leading: max(0, left) + 8, bottom: max(0, safeAreaInsets.bottom) + 8, trailing: max(0, right) + 8)
         }
 
-        func readout(divisionRegions: [LayoutScopeRegion]? = nil, visibility: LayoutScopeVisibility = LayoutScopeVisibility()) -> [LayoutScopeReadoutRow] {
-            guard visibility.readout else { return [] }
-            var rows = [
-                row("edgeOrder", "top / lead / bottom / trail", color: .white),
-                row("sizeClasses", "size classes · h: \(sizeClassName(horizontalSizeClass)), v: \(sizeClassName(verticalSizeClass))", color: .white),
-            ]
-            if visibility.safeArea {
-                rows.append(row("safeInsets", "safe area insets · \(insets(safeAreaInsets))", color: .cyan))
+        func readoutData(divisionRegions: [LayoutScopeRegion]? = nil, visibility: LayoutScopeVisibility = LayoutScopeVisibility()) -> LayoutScopeReadoutData {
+            let status: String
+            let angle: String
+            switch hinge {
+            case .unsupported:
+                status = "Hinge unavailable on this OS"
+                angle = "—"
+            case .awaitingUpdate:
+                status = "Awaiting hinge update"
+                angle = "—"
+            case .unavailable:
+                status = "Hinge unavailable"
+                angle = "—"
+            case let .reading(value, degrees):
+                status = value
+                angle = "\(LayoutScopeNumberFormatter.points(degrees))°"
             }
-            if !isWindow, let contentMargins, contentMargins != EdgeInsets() {
-                rows.append(row("contentMargins", "content margins · \(insets(contentMargins))", color: .green))
-            }
-            rows.append(row("hinge", hinge.readout, color: .yellow))
+            let context = "\(angle) · \(status)   H: \(sizeClassName(horizontalSizeClass)) · V: \(sizeClassName(verticalSizeClass))"
             guard regions != nil else {
-                rows.append(row("reservedUnavailable", "reserved · requires iOS 27.1", color: .white))
-                return rows
+                return LayoutScopeReadoutData(context: context, safeAreaInsets: visibility.safeArea ? safeAreaInsets : nil, regionsAvailable: false, regions: [])
             }
+
+            let bounds = CGRect(origin: .zero, size: size)
             let divisions = (divisionRegions ?? visibleRegions.filter(\.isDivision))
-                .filter { LayoutScopeGeometry.intersects($0.frame, bounds: CGRect(origin: .zero, size: size)) }
-            let occlusions = visibleRegions.filter { !$0.isDivision }
-            for group in [divisions, occlusions] {
-                for (index, region) in group.filter(visibility.shows).enumerated() {
+                .filter { LayoutScopeGeometry.intersects($0.frame, bounds: bounds) && visibility.shows($0) }
+            let occlusions = visibleRegions.filter { !$0.isDivision && visibility.shows($0) }
+            let mapped = [(LayoutScopeRegionKind.division, divisions), (.occlusion, occlusions)].flatMap { kind, values in
+                values.enumerated().map { index, region in
                     let identity = region.id ?? AnyHashable(index)
-                    var details: [(String, String, Color)] = [
-                        ("status", "\(region.name) #\(index + 1) · \(region.isActive ? "active" : "inactive")", region.color),
-                        ("origin", "  origin (x,y) · \(points(region.frame.minX)), \(points(region.frame.minY))", .white),
-                        ("size", "  size (w,h) · \(points(region.frame.width)), \(points(region.frame.height))", .white),
-                    ]
-                    if region.isDivision {
-                        let bounds = CGRect(origin: .zero, size: size)
-                        let contentRegions = LayoutScopeGeometry.regions(onEitherSideOf: region.frame, in: bounds)
-                        for (regionIndex, frame) in contentRegions.enumerated() {
-                            details.append((
-                                "divisionRegion\(regionIndex).title",
-                                "  region #\(regionIndex + 1)",
-                                .white
-                            ))
-                            details.append((
-                                "divisionRegion\(regionIndex).origin",
-                                "    origin (x,y) · \(points(frame.minX)), \(points(frame.minY))",
-                                .white
-                            ))
-                            details.append((
-                                "divisionRegion\(regionIndex).size",
-                                "    size (w,h) · \(points(frame.width)), \(points(frame.height))",
-                                .white
-                            ))
-                        }
-                    }
-                    if region.margins != EdgeInsets() {
-                        details.append(("margins", "  included margins · \(insets(region.margins))", .white))
-                    }
-                    rows += details.map { field, text, color in
-                        LayoutScopeReadoutRow(id: .region(kind: region.name, identity: identity, field: field), text: text, color: color)
-                    }
+                    return LayoutScopeReadoutRegion(
+                        id: .init(kind: kind, identity: identity),
+                        kind: kind,
+                        number: index + 1,
+                        frame: region.frame,
+                        margins: region.margins,
+                        isActive: region.isActive,
+                        contentAreas: kind == .division ? LayoutScopeGeometry.regions(onEitherSideOf: region.frame, in: bounds) : [],
+                    )
                 }
             }
-            return rows
-        }
-
-        private func row(_ id: String, _ text: String, color: Color) -> LayoutScopeReadoutRow {
-            LayoutScopeReadoutRow(id: .field(id), text: text, color: color)
-        }
-
-        private func insets(_ insets: EdgeInsets) -> String {
-            guard insets != EdgeInsets() else { return "none" }
-            return [insets.top, insets.leading, insets.bottom, insets.trailing].map(points).joined(separator: " / ")
+            return LayoutScopeReadoutData(context: context, safeAreaInsets: visibility.safeArea ? safeAreaInsets : nil, regionsAvailable: true, regions: mapped)
         }
 
         private func sizeClassName(_ sizeClass: UserInterfaceSizeClass?) -> String {
             switch sizeClass {
-            case .compact: "compact"
-            case .regular: "regular"
-            case nil: "unspecified"
-            @unknown default: "unknown"
+            case .compact: "Compact"
+            case .regular: "Regular"
+            case nil: "Unspecified"
+            @unknown default: "Unknown"
             }
-        }
-
-        private func points(_ value: CGFloat) -> String {
-            String(format: "%.1f", Double(value))
         }
     }
 #endif
