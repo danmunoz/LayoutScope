@@ -2,10 +2,11 @@ import LayoutScope
 import SwiftUI
 
 @main struct MyApp: App {
+    @State var overlayHidden: Bool = false
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .layoutScopeOverlay(hidden: false)
+            ContentView(windowOverlayHidden: $overlayHidden)
+                .layoutScopeOverlay(hidden: overlayHidden)
         }
     }
 }

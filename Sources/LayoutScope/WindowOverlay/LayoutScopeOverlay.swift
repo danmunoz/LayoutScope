@@ -38,19 +38,6 @@ import SwiftUI
         }
     }
 
-    struct LayoutScopeGuides: View {
-        let guides: [LayoutScopeGuide]
-
-        var body: some View {
-            Canvas { context, _ in
-                for guide in guides {
-                    context.fill(Path(guide.fill), with: .color(guide.color.opacity(guide.fillOpacity * guide.opacity)))
-                    context.stroke(guide.outline, with: .color(guide.color.opacity(guide.opacity)), style: StrokeStyle(lineWidth: guide.lineWidth, dash: guide.dash))
-                }
-            }
-        }
-    }
-
     private struct LayoutScopeReadout: View {
         let rows: [LayoutScopeReadoutRow]
         let spacing: CGFloat
@@ -84,7 +71,7 @@ import SwiftUI
         ))
     }
 
-    #Preview("Local: zero guides, unavailable hinge") {
+    #Preview("View: zero guides, unavailable hinge") {
         LayoutScopeOverlay(snapshot: LayoutScopeSnapshot(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [], hinge: .unavailable))
     }
 

@@ -2,7 +2,7 @@ import SwiftUI
 
 #if DEBUG
     /// Compact diagnostics for one view. Origin uses SwiftUI's global coordinate space.
-    struct LayoutScopeLocalReadout: View {
+    struct LayoutScopeViewReadout: View {
         let origin: CGPoint
         let snapshot: LayoutScopeSnapshot
 
@@ -46,10 +46,10 @@ import SwiftUI
     }
 
     #Preview("Geometry only") {
-        LayoutScopeLocalReadout(origin: CGPoint(x: 24, y: 80), snapshot: LayoutScopeSnapshot(size: CGSize(width: 300, height: 200), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [], horizontalSizeClass: .compact, verticalSizeClass: .regular))
+        LayoutScopeViewReadout(origin: CGPoint(x: 24, y: 80), snapshot: LayoutScopeSnapshot(size: CGSize(width: 300, height: 200), safeAreaInsets: EdgeInsets(), contentMargins: nil, regions: [], horizontalSizeClass: .compact, verticalSizeClass: .regular))
     }
 
     #Preview("Safe area and margins") {
-        LayoutScopeLocalReadout(origin: .zero, snapshot: LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84), contentMargins: EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 0), regions: [], horizontalSizeClass: .regular, verticalSizeClass: .regular))
+        LayoutScopeViewReadout(origin: .zero, snapshot: LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 34, trailing: 84), contentMargins: EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 0), regions: [], horizontalSizeClass: .regular, verticalSizeClass: .regular))
     }
 #endif

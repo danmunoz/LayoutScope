@@ -4,7 +4,7 @@ import UIKit
 #if DEBUG
     /// UIKit resolves the safe area against the probe's actual bounds. A SwiftUI
     /// GeometryProxy can instead report the container's already-consumed insets.
-    struct LayoutScopeLocalSafeAreaProbe: UIViewRepresentable {
+    struct LayoutScopeViewSafeAreaProbe: UIViewRepresentable {
         let onChange: (EdgeInsets) -> Void
         @Environment(\.layoutDirection) private var layoutDirection
 

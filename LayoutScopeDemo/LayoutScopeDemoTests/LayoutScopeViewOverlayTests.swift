@@ -6,10 +6,10 @@ import UIKit
 #if DEBUG
     @MainActor
     @Suite(.serialized)
-    struct LayoutScopeLocalOverlayTests {
+    struct LayoutScopeViewOverlayTests {
         @Test func ignoredSafeAreasDrawAtActualEdges() async throws {
             try await withWindow(name: "ignored") {
-                Color.white.localLayoutScopeOverlay().ignoresSafeArea()
+                Color.white.viewLayoutScopeOverlay().ignoresSafeArea()
             } verify: { (window: UIWindow, image: CGImage) throws in
                 let size = window.bounds.size
                 let insets = window.safeAreaInsets
@@ -26,7 +26,7 @@ import UIKit
 
         @Test func respectedSafeAreasDoNotDrawConsumedInsets() async throws {
             try await withWindow(name: "respected") {
-                Color.white.localLayoutScopeOverlay()
+                Color.white.viewLayoutScopeOverlay()
             } verify: { (window: UIWindow, image: CGImage) throws in
                 let size = window.bounds.size
                 let safe = window.safeAreaLayoutGuide.layoutFrame
@@ -40,7 +40,7 @@ import UIKit
 
         @Test func ignoringOnlyBottomDoesNotDrawTrailingSafeArea() async throws {
             try await withWindow(name: "bottom-only") {
-                Color.white.localLayoutScopeOverlay().ignoresSafeArea(edges: .bottom)
+                Color.white.viewLayoutScopeOverlay().ignoresSafeArea(edges: .bottom)
             } verify: { (window: UIWindow, image: CGImage) throws in
                 let size = window.bounds.size
                 let safe = window.safeAreaLayoutGuide.layoutFrame
@@ -49,14 +49,14 @@ import UIKit
             }
         }
 
-        @Test func localProbeTracksNestedBoundsAndRTL() async throws {
+        @Test func viewProbeTracksNestedBoundsAndRTL() async throws {
             let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
             let window = UIWindow(windowScene: scene)
             let root = UIViewController()
             window.rootViewController = root
             window.isHidden = false
             defer { window.isHidden = true }
-            let probe = LayoutScopeLocalSafeAreaProbe.ProbeView()
+            let probe = LayoutScopeViewSafeAreaProbe.ProbeView()
             var readings: [EdgeInsets] = []
             probe.onChange = { readings.append($0) }
             root.view.addSubview(probe)
@@ -92,14 +92,14 @@ import UIKit
             defer { window.isHidden = true }
             window.layoutIfNeeded()
             controller.view.layoutIfNeeded()
-            // Let the local UIKit measurement feed back into SwiftUI and render.
+            // Let the view UIKit measurement feed back into SwiftUI and render.
             try await Task.sleep(for: .milliseconds(250))
             let format = UIGraphicsImageRendererFormat()
             format.scale = 1
             let image = UIGraphicsImageRenderer(size: window.bounds.size, format: format).image { _ in
                 controller.view.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
             }
-            let path = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("layoutscope-local-\(name).png")
+            let path = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("layoutscope-view-\(name).png")
             try image.pngData()?.write(to: path)
             try verify(window, #require(image.cgImage))
         }

@@ -4,9 +4,9 @@ public extension View {
     /// Visualizes this view's safe area, container content margins, and reserved regions.
     /// Apply inside layout modifiers such as `ignoresSafeArea` to inspect their expanded content.
     /// Debug only. Content margins and reserved regions require iOS 27.1.
-    func localLayoutScopeOverlay(includeInactiveRegions: Bool = true) -> some View {
+    func viewLayoutScopeOverlay(includeInactiveRegions: Bool = true) -> some View {
         #if DEBUG
-            modifier(LocalLayoutScopeOverlayModifier(includeInactiveRegions: includeInactiveRegions))
+            modifier(ViewLayoutScopeOverlayModifier(includeInactiveRegions: includeInactiveRegions))
         #else
             self
         #endif
@@ -14,14 +14,14 @@ public extension View {
 }
 
 #if DEBUG
-    private struct LocalLayoutScopeOverlayModifier: ViewModifier {
+    private struct ViewLayoutScopeOverlayModifier: ViewModifier {
         let includeInactiveRegions: Bool
         @State private var safeAreaInsets = EdgeInsets()
 
         func body(content: Content) -> some View {
             content.overlay {
                 GeometryReader { proxy in
-                    LayoutScopeLocalOverlay(
+                    LayoutScopeViewOverlay(
                         origin: proxy.frame(in: .global).origin,
                         size: proxy.size,
                         safeAreaInsets: safeAreaInsets,
@@ -29,7 +29,7 @@ public extension View {
                         regions: layoutScopeReservedRegions(proxy, includeInactive: includeInactiveRegions)
                     )
                     .overlay {
-                        LayoutScopeLocalSafeAreaProbe { safeAreaInsets = $0 }
+                        LayoutScopeViewSafeAreaProbe { safeAreaInsets = $0 }
                     }
                 }
                 .allowsHitTesting(false)
@@ -63,7 +63,7 @@ public extension View {
         }
     }
 
-    private struct LayoutScopeLocalOverlay: View {
+    private struct LayoutScopeViewOverlay: View {
         var origin: CGPoint = .zero
         let size: CGSize
         let safeAreaInsets: EdgeInsets
@@ -81,7 +81,7 @@ public extension View {
         var body: some View {
             ZStack(alignment: .bottom) {
                 LayoutScopeGuides(guides: snapshot.guides)
-                LayoutScopeLocalReadout(origin: origin, snapshot: snapshot)
+                LayoutScopeViewReadout(origin: origin, snapshot: snapshot)
                     .padding(8)
             }
             .frame(width: size.width, height: size.height)
@@ -94,19 +94,19 @@ public extension View {
     #Preview("Live container geometry") {
         NavigationStack {
             Color.gray.opacity(0.2)
-                .localLayoutScopeOverlay()
+                .viewLayoutScopeOverlay()
                 .navigationTitle(Text(verbatim: "Layout diagnostics"))
         }
     }
 
     #Preview("Expanded safe-area overlap") {
         Color.gray.opacity(0.2)
-            .localLayoutScopeOverlay()
+            .viewLayoutScopeOverlay()
             .ignoresSafeArea()
     }
 
     #Preview("Division and occlusion fixtures") {
-        LayoutScopeLocalOverlay(
+        LayoutScopeViewOverlay(
             size: CGSize(width: 360, height: 540),
             safeAreaInsets: EdgeInsets(top: 44, leading: 0, bottom: 34, trailing: 0),
             contentMargins: EdgeInsets(top: 60, leading: 20, bottom: 50, trailing: 20),
@@ -117,16 +117,16 @@ public extension View {
         )
     }
 
-    #Preview("No local guides") {
-        LayoutScopeLocalOverlay(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
+    #Preview("No view guides") {
+        LayoutScopeViewOverlay(size: CGSize(width: 360, height: 540), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
     }
 
-    #Preview("Offset local view") {
-        LayoutScopeLocalOverlay(origin: CGPoint(x: 24, y: 80), size: CGSize(width: 300, height: 200), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
+    #Preview("Offset view") {
+        LayoutScopeViewOverlay(origin: CGPoint(x: 24, y: 80), size: CGSize(width: 300, height: 200), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
     }
 
     #Preview("RTL asymmetric margins") {
-        LayoutScopeLocalOverlay(
+        LayoutScopeViewOverlay(
             size: CGSize(width: 360, height: 540),
             safeAreaInsets: EdgeInsets(top: 44, leading: 12, bottom: 34, trailing: 0),
             contentMargins: EdgeInsets(top: 60, leading: 40, bottom: 50, trailing: 16),

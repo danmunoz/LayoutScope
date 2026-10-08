@@ -78,7 +78,7 @@ import SwiftUI
                   frame.width > 0 || frame.height > 0 else { return false }
             // Keep division lines, but exclude area regions that only touch an
             // edge. Otherwise an occlusion outside a respected safe area leaks
-            // a border and readout into the local overlay.
+            // a border and readout into the view overlay.
             if frame.width == 0 {
                 return frame.minX >= bounds.minX && frame.minX <= bounds.maxX
                     && frame.maxY > bounds.minY && frame.minY < bounds.maxY

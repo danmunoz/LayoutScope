@@ -101,7 +101,7 @@ import UIKit
             #expect(!labels.contains { $0.hasPrefix("division #") })
         }
 
-        @Test func onlyNonzeroLocalContentMarginsProduceReadoutRows() {
+        @Test func onlyNonzeroViewContentMarginsProduceReadoutRows() {
             var snapshot = LayoutScopeSnapshot(size: CGSize(width: 300, height: 400), safeAreaInsets: EdgeInsets(), contentMargins: EdgeInsets(), regions: [])
             #expect(!snapshot.readout().contains { $0.text.hasPrefix("content margins") })
             snapshot = LayoutScopeSnapshot(size: snapshot.size, safeAreaInsets: snapshot.safeAreaInsets, contentMargins: EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20), regions: [])
@@ -122,7 +122,7 @@ import UIKit
             #expect(snapshot.readoutInsets == EdgeInsets(top: 28, leading: 20, bottom: 42, trailing: 92))
         }
 
-        @Test func localReadoutDoesNotReapplySafeInsets() {
+        @Test func viewReadoutDoesNotReapplySafeInsets() {
             let snapshot = LayoutScopeSnapshot(size: CGSize(width: 600, height: 400), safeAreaInsets: EdgeInsets(top: 44, leading: 84, bottom: 34, trailing: 12), contentMargins: nil, regions: [])
             #expect(snapshot.readoutInsets == EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
         }
